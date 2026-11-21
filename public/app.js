@@ -264,6 +264,7 @@ function highlight() {
 	$('#home').classList.toggle('on', !current);
 	Object.entries(frames).forEach(([port, pane]) => pane.classList.toggle('on', port === current));
 	$('#claude').hidden = !current;
+	$('#code').hidden = !current;
 	$('#claude').classList.toggle('on', Claude.visible(current));
 }
 
@@ -308,6 +309,7 @@ $('#tabs [data-home]').onclick = () => show('');
 $('#add').onclick = add;
 $('#new-category').onclick = newCategory;
 $('#claude').onclick = () => Claude.toggle(current);
+$('#code').onclick = () => api(`projects/${current}/code`, 'POST');
 addEventListener('keydown', (event) => {
 	if (event.ctrlKey && event.key === '`') {
 		event.preventDefault();
@@ -316,5 +318,17 @@ addEventListener('keydown', (event) => {
 });
 
 refresh().then(() => show(open.includes(stored('tab', '')) ? stored('tab', '') : ''));
+
+// Live reload: a change in public/ swaps the stylesheet in place or reloads the page,
+// and a restarted server (a new boot id) reloads it too.
+let boot;
+new EventSource('/live').onmessage = ({ data }) => {
+	const { id, file } = JSON.parse(data);
+	if (boot && boot !== id) return location.reload();
+	boot = id;
+	if (!file) return;
+	if (file.endsWith('.css')) document.querySelectorAll('link[rel=stylesheet]').forEach((l) => (l.href = l.href.split('?')[0] + '?' + Date.now()));
+	else location.reload();
+};
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

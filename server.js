@@ -229,8 +229,31 @@ function serveFile(req, res) {
 	fs.createReadStream(file).pipe(res);
 }
 
+// ---- live reload: tells the open pages when a file in public/ changes ----
+
+const BOOT = String(Date.now());
+const listeners = new Set();
+let pending, changed;
+fs.watch(PUBLIC, { recursive: true }, (event, file) => {
+	// Changes come in bursts: send one message, a script or page winning over a stylesheet.
+	if (!changed?.match(/\.(js|html)$/)) changed = file;
+	clearTimeout(pending);
+	pending = setTimeout(() => {
+		listeners.forEach((res) => res.write(`data: ${JSON.stringify({ id: BOOT, file: changed })}\n\n`));
+		changed = null;
+	}, 100);
+});
+
+function live(req, res) {
+	res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+	res.write(`data: ${JSON.stringify({ id: BOOT })}\n\n`);
+	listeners.add(res);
+	req.on('close', () => listeners.delete(res));
+}
+
 const server = http.createServer((req, res) => {
-	if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
+	if (req.url === '/live') live(req, res);
+	else if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
 	else serveFile(req, res);
 });
 claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS, DATA_DIR);
