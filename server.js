@@ -52,16 +52,41 @@ function discover() {
 	return list;
 }
 
+// projects.json: { categories: [name…], projects: [{ dir, port, category? }…] } in display order.
+// An older file holds the bare projects array.
+function read() {
+	if (!fs.existsSync(LIST)) return { categories: [], projects: discover() };
+	const data = JSON.parse(fs.readFileSync(LIST, 'utf8'));
+	return Array.isArray(data) ? { categories: [], projects: data } : data;
+}
+
+function write(data) {
+	fs.mkdirSync(DATA_DIR, { recursive: true });
+	fs.writeFileSync(LIST, JSON.stringify(data, null, '\t') + '\n');
+}
+
 function load() {
-	if (fs.existsSync(LIST)) return JSON.parse(fs.readFileSync(LIST, 'utf8'));
-	const list = discover();
-	save(list);
-	return list;
+	return read().projects;
 }
 
 function save(list) {
-	fs.mkdirSync(DATA_DIR, { recursive: true });
-	fs.writeFileSync(LIST, JSON.stringify(list, null, '\t') + '\n');
+	write({ ...read(), projects: list });
+}
+
+// Sets the categories and the order and category of every project, from the page.
+function arrange({ categories, order }) {
+	const names = [...new Set(categories.filter((name) => typeof name === 'string' && name.trim()))];
+	const list = load();
+	const placed = order.map((o) => list.find((p) => p.port === o.port)).filter(Boolean);
+	const projects = [...placed, ...list.filter((p) => !placed.includes(p))].map(({ category, ...p }) => {
+		const wanted = order.find((o) => o.port === p.port)?.category ?? category;
+		return names.includes(wanted) ? { ...p, category: wanted } : p;
+	});
+	write({ categories: names, projects });
+}
+
+function state() {
+	return { categories: read().categories, projects: describe(load()) };
 }
 
 function counts(dir) {
@@ -140,19 +165,31 @@ function send(res, status, body) {
 	res.end(JSON.stringify(body));
 }
 
+function body(req) {
+	return new Promise((resolve, reject) => {
+		let text = '';
+		req.on('data', (chunk) => (text += chunk));
+		req.on('end', () => { try { resolve(JSON.parse(text)); } catch (error) { reject(error); } });
+	});
+}
+
 async function api(req, res) {
 	const [, , resource, id, action] = req.url.split('/');
 	const list = load();
 	const project = list.find((p) => String(p.port) === id);
+	if (resource === 'layout' && req.method === 'PUT') {
+		arrange(await body(req));
+		return send(res, 200, state());
+	}
 	if (resource !== 'projects') return send(res, 404, {});
-	if (req.method === 'GET' && !id) return send(res, 200, describe(list));
-	if (req.method === 'POST' && !id) return send(res, 200, { port: await add(), projects: describe(load()) });
+	if (req.method === 'GET' && !id) return send(res, 200, state());
+	if (req.method === 'POST' && !id) return send(res, 200, { port: await add(), ...state() });
 	if (!project) return send(res, 404, {});
 	if (req.method === 'POST' && action === 'start') return send(res, 200, { url: await start(project) });
 	if (req.method === 'DELETE') {
 		stop(project.port);
 		save(list.filter((p) => p !== project));
-		return send(res, 200, describe(load()));
+		return send(res, 200, state());
 	}
 	send(res, 404, {});
 }

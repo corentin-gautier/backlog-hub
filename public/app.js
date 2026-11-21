@@ -1,10 +1,17 @@
 // One tab per project; each board loads in its own iframe, kept so it stays where it was left.
 const frames = {};
 let projects = [];
+let categories = [];
 let current = '';
 
 const $ = (selector) => document.querySelector(selector);
-const api = (url, method = 'GET') => fetch(`/api/${url}`, { method }).then((res) => res.json());
+const api = (url, method = 'GET', body) =>
+	fetch(`/api/${url}`, { method, body: body && JSON.stringify(body), headers: body && { 'Content-Type': 'application/json' } }).then((res) => res.json());
+
+function take(state) {
+	categories = state.categories;
+	projects = state.projects;
+}
 
 // Stored per browser: the open tabs and the one shown.
 function stored(key, fallback) {
@@ -21,9 +28,154 @@ function render() {
 	open = open.filter((port) => projects.some((p) => String(p.port) === port));
 	store('open', open);
 	$('#tabs').replaceChildren($('#tabs [data-home]'), ...open.map((port) => tab(projects.find((p) => String(p.port) === port))));
-	$('#cards').replaceChildren(...projects.map(card), newCard());
+	const known = (p) => categories.includes(p.category);
+	$('#groups').replaceChildren(
+		...categories.map((name) => group(name, projects.filter((p) => p.category === name))),
+		group('', projects.filter((p) => !known(p)))
+	);
 	highlight();
 }
+
+// A section of cards; '' is the uncategorized one, last, holding the add card.
+function group(name, list) {
+	const el = document.createElement('section');
+	el.className = 'group';
+	el.dataset.cat = name;
+	el.innerHTML = `<h2><span class="cat"></span><span class="count"></span></h2><div class="cards"></div>`;
+	el.querySelector('.cat').textContent = name || 'Sans catégorie';
+	el.querySelector('.count').textContent = list.length;
+	el.querySelector('.cards').append(...list.map(card));
+	if (!name) {
+		el.querySelector('h2').classList.add('none');
+		el.querySelector('.cards').append(newCard());
+		return el;
+	}
+	const head = el.querySelector('h2');
+	draggable(head, 'group');
+	head.title = 'Glisser pour déplacer la catégorie';
+	const actions = document.createElement('span');
+	actions.className = 'acts';
+	actions.innerHTML = '<button>Renommer</button><button>Supprimer</button>';
+	actions.children[0].onclick = () => rename(el);
+	actions.children[1].onclick = () => {
+		categories = categories.filter((c) => c !== name);
+		persist();
+	};
+	head.append(actions);
+	return el;
+}
+
+function rename(el, fresh) {
+	const label = el.querySelector('.cat');
+	const before = el.dataset.cat;
+	el.querySelector('h2').draggable = false;
+	label.contentEditable = 'plaintext-only';
+	label.focus();
+	getSelection().selectAllChildren(label);
+	label.onkeydown = (event) => {
+		if (event.key === 'Enter') label.blur();
+		if (event.key === 'Escape') {
+			label.textContent = before;
+			label.blur();
+		}
+	};
+	label.onblur = () => {
+		const name = label.textContent.trim();
+		if (!name || name === before || categories.includes(name)) return fresh ? persist() : render();
+		categories = categories.map((c) => (c === before ? name : c));
+		projects.forEach((p) => p.category === before && (p.category = name));
+		persist();
+	};
+}
+
+function newCategory() {
+	let name = 'Nouvelle catégorie';
+	for (let i = 2; categories.includes(name); i++) name = `Nouvelle catégorie ${i}`;
+	categories.push(name);
+	render();
+	rename($(`.group[data-cat="${CSS.escape(name)}"]`), true);
+}
+
+// Saves the categories and the projects' order and categories, then redraws.
+async function persist() {
+	const order = projects.map((p) => ({ port: p.port, category: categories.includes(p.category) ? p.category : null }));
+	render();
+	take(await api('layout', 'PUT', { categories, order }));
+	render();
+}
+
+// ---- drag and drop: cards between and within sections, sections, tabs ----
+
+let dragged = null; // the element being moved: a card, a section or a tab
+
+function draggable(el, kind) {
+	el.draggable = true;
+	el.addEventListener('dragstart', (event) => {
+		event.stopPropagation();
+		dragged = kind === 'group' ? el.closest('.group') : el;
+		dragged.dataset.kind = kind;
+		event.dataTransfer.effectAllowed = 'move';
+		if (kind === 'group') event.dataTransfer.setDragImage(el, 20, 12);
+		requestAnimationFrame(() => dragged?.classList.add('dragging'));
+	});
+	el.addEventListener('dragend', () => {
+		if (!dragged) return;
+		const kind = dragged.dataset.kind;
+		dragged.classList.remove('dragging');
+		document.querySelectorAll('.target').forEach((t) => t.classList.remove('target'));
+		dragged = null;
+		if (kind === 'tab') {
+			open = [...document.querySelectorAll('#tabs [data-port]')].map((t) => t.dataset.port);
+			store('open', open);
+		} else {
+			readLayout();
+		}
+	});
+}
+
+// Moves the dragged element next to the item under the pointer.
+function place(event, item, vertical) {
+	if (!item || item === dragged) return;
+	const box = item.getBoundingClientRect();
+	const after = vertical ? event.clientY > box.top + box.height / 2 : event.clientX > box.left + box.width / 2;
+	if (after ? item.nextElementSibling !== dragged : item.previousElementSibling !== dragged) item[after ? 'after' : 'before'](dragged);
+}
+
+function over(event) {
+	if (!dragged) return;
+	const kind = dragged.dataset.kind;
+	if (kind === 'card') {
+		const cards = event.target.closest('.cards') || event.target.closest('.group')?.querySelector('.cards');
+		if (!cards) return;
+		event.preventDefault();
+		const item = event.target.closest('.card:not(.new)');
+		if (item && cards.contains(item)) place(event, item);
+		else if (dragged.parentElement !== cards) cards.insertBefore(dragged, cards.querySelector('.new'));
+		document.querySelectorAll('.target').forEach((t) => t !== cards.parentElement && t.classList.remove('target'));
+		cards.parentElement.classList.add('target');
+	} else if (kind === 'group') {
+		event.preventDefault();
+		const item = event.target.closest('.group');
+		if (item && item.dataset.cat) place(event, item, true);
+	} else if (kind === 'tab') {
+		const item = event.target.closest('#tabs [data-port]');
+		if (!event.target.closest('#tabs')) return;
+		event.preventDefault();
+		place(event, item);
+	}
+}
+
+// Reads the new order back from the page.
+function readLayout() {
+	const groups = [...document.querySelectorAll('.group')];
+	categories = groups.map((g) => g.dataset.cat).filter(Boolean);
+	const byPort = Object.fromEntries(projects.map((p) => [p.port, p]));
+	projects = groups.flatMap((g) => [...g.querySelectorAll('.card[data-port]')].map((c) => ({ ...byPort[c.dataset.port], category: g.dataset.cat || null })));
+	persist();
+}
+
+document.addEventListener('dragover', over);
+document.addEventListener('drop', (event) => dragged && event.preventDefault());
 
 function tab(p) {
 	const el = document.createElement('button');
@@ -42,6 +194,7 @@ function tab(p) {
 		closeTab(String(p.port));
 	};
 	el.append(dot, p.name, close);
+	draggable(el, 'tab');
 	return el;
 }
 
@@ -66,6 +219,7 @@ function card(p) {
 	const total = p.todo + p.doing + p.done || 1;
 	const el = document.createElement('div');
 	el.className = 'card';
+	el.dataset.port = p.port;
 	el.innerHTML = `
 		<div class="top"><div class="avatar"></div><div style="min-width:0"><div class="name"></div><div class="place"></div></div></div>
 		<div class="progress"><i style="width:${(p.done / total) * 100}%;background:var(--done)"></i><i style="width:${(p.doing / total) * 100}%;background:var(--doing)"></i></div>
@@ -80,9 +234,10 @@ function card(p) {
 		event.stopPropagation();
 		if (!confirm(`Retirer « ${p.name} » de la liste ? Le dossier et ses tâches restent.`)) return;
 		if (open.includes(String(p.port))) closeTab(String(p.port));
-		projects = await api(`projects/${p.port}`, 'DELETE');
+		take(await api(`projects/${p.port}`, 'DELETE'));
 		render();
 	};
+	draggable(el, 'card');
 	return el;
 }
 
@@ -119,13 +274,13 @@ async function show(port) {
 }
 
 async function refresh() {
-	projects = await api('projects');
+	take(await api('projects'));
 	render();
 }
 
 async function add() {
 	const result = await api('projects', 'POST');
-	projects = result.projects;
+	take(result);
 	render();
 	if (result.port) show(String(result.port));
 }
@@ -135,6 +290,7 @@ $('#today').textContent = today;
 
 $('#tabs [data-home]').onclick = () => show('');
 $('#add').onclick = add;
+$('#new-category').onclick = newCategory;
 
 refresh().then(() => show(open.includes(stored('tab', '')) ? stored('tab', '') : ''));
 

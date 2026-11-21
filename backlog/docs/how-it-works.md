@@ -19,7 +19,7 @@ One Node file, `server.js`, no dependencies. Serves `public/` on `127.0.0.1:6400
 
 ## Project list
 
-- `~/Library/Application Support/Backlogs/projects.json`: entries `{ dir, port }`.
+- `~/Library/Application Support/Backlogs/projects.json`: `{ categories: [name…], projects: [{ dir, port, category? }…] }`, projects in display order. An older file holding the bare projects array still loads.
 - First run: every folder of `~/Projects` and `~/Documents` with a `backlog/config.yml`. Git worktrees (`.git` is a file) skipped.
 - Name: `project_name` from the config, else the folder name.
 - A project whose config is gone is hidden from the list.

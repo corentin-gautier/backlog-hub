@@ -9,7 +9,13 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Layout
 
 - Top bar: a Home tab ("Accueil"), one tab per open project, and a + button to add a project.
-- Home: today's date (French format), "Mes projets", a card per project, then an "Ajouter un projet" card.
+- Home: today's date (French format), "Mes projets", then a section per category with its cards, then "Sans catégorie" (projects without one, and the "Ajouter un projet" card), then a "+ Nouvelle catégorie" button.
+
+## Categories and order
+
+- Drag a card to reorder it or move it to another section (its category changes); drag a section's heading to reorder the categories; drag a tab to reorder the tabs.
+- Hovering a heading shows Renommer (edit in place, Enter or click away to save, Escape to cancel) and Supprimer (its projects go to "Sans catégorie").
+- Categories and the cards' order are saved in `projects.json` (PUT `/api/layout`), so every browser shows the same; the tabs' order is per browser.
 
 ## Cards
 
@@ -23,7 +29,7 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 
 - Opening a project (its card) adds its tab; × on the tab closes it and drops its iframe. Closing the shown tab shows the next one, or Home.
 - Each open board loads in its own iframe, kept while its tab is open, so it stays where it was left.
-- The open tabs and the shown one are remembered (`localStorage`) and reopened at launch.
+- The open tabs, their order and the shown one are remembered (`localStorage`) and reopened at launch.
 - Back to Home refreshes the list and counts.
 
 ## Installing as an app
