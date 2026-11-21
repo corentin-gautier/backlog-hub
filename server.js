@@ -199,6 +199,10 @@ async function api(req, res) {
 		claude.openInTerminal(project);
 		return send(res, 200, {});
 	}
+	if (req.method === 'POST' && action === 'code') {
+		execFile('open', ['-a', 'Visual Studio Code', project.dir]);
+		return send(res, 200, {});
+	}
 	if (req.method === 'GET' && action === 'sessions') return send(res, 200, await claude.sessions(project));
 	if (req.method === 'DELETE' && action === 'claude') {
 		claude.stop(project.port);

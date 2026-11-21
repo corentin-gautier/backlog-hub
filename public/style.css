@@ -188,6 +188,10 @@ nav button.dragging { opacity: .4; }
 .remove { position: absolute; top: 10px; right: 10px; border: 0; background: none; color: var(--faint); font-size: 16px; line-height: 1; cursor: pointer; padding: 4px 7px; border-radius: 6px; visibility: hidden; }
 .card:hover .remove { visibility: visible; }
 .remove:hover { color: var(--text); background: var(--hover); }
+.card .code { position: absolute; top: 10px; right: 38px; border: 0; background: none; color: var(--faint); cursor: pointer; padding: 5px; border-radius: 6px; line-height: 0; visibility: hidden; }
+.card .code svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.card:hover .code { visibility: visible; }
+.card .code:hover { color: var(--text); background: var(--hover); }
 
 .card.new { display: grid; place-items: center; min-height: 128px; background: none; border: 1.5px dashed var(--dash); box-shadow: none; color: var(--faint); }
 .card.new:hover { color: var(--text); transform: none; }

@@ -229,12 +229,17 @@ function card(p) {
 		<div class="top"><div class="avatar"></div><div style="min-width:0"><div class="name"></div><div class="place"></div></div></div>
 		<div class="progress"><i style="width:${(p.done / total) * 100}%;background:var(--done)"></i><i style="width:${(p.doing / total) * 100}%;background:var(--doing)"></i></div>
 		<div class="stats"><span><b>${p.done}</b> faites</span><span><b>${p.doing}</b> en cours</span><span><b>${p.todo}</b> à faire</span></div>
+		<button class="code" title="Ouvrir dans VS Code"><svg viewBox="0 0 16 16"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg></button>
 		<button class="remove" title="Retirer de la liste (le dossier reste)">×</button>`;
 	el.querySelector('.avatar').textContent = p.name[0].toUpperCase();
 	el.querySelector('.avatar').style.background = colour(p.name);
 	el.querySelector('.name').textContent = p.name;
 	el.querySelector('.place').textContent = p.place;
 	el.onclick = () => show(String(p.port));
+	el.querySelector('.code').onclick = (event) => {
+		event.stopPropagation();
+		api(`projects/${p.port}/code`, 'POST');
+	};
 	el.querySelector('.remove').onclick = async (event) => {
 		event.stopPropagation();
 		if (!confirm(`Retirer « ${p.name} » de la liste ? Le dossier et ses tâches restent.`)) return;
