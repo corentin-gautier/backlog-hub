@@ -1,7 +1,8 @@
 /* Backlog.md's palette (Tailwind grays, blue accent), so the home matches the boards. */
 :root {
 	--bg: oklch(0.985 0.002 247.839); /* gray-50 */
-	--bar: #fff;
+	--bar: oklch(0.967 0.003 264.542); /* gray-100 */
+	--bar-hover: oklch(0.928 0.006 264.531); /* gray-200 */
 	--card: #fff;
 	--text: oklch(0.21 0.034 264.665); /* gray-900 */
 	--muted: oklch(0.446 0.03 256.802); /* gray-600 */
@@ -20,7 +21,8 @@
 @media (prefers-color-scheme: dark) {
 	:root {
 		--bg: oklch(0.21 0.034 264.665); /* gray-900 */
-		--bar: oklch(0.21 0.034 264.665);
+		--bar: oklch(0.13 0.028 261.692); /* gray-950 */
+		--bar-hover: oklch(0.278 0.033 256.848); /* gray-800 */
 		--card: oklch(0.278 0.033 256.848); /* gray-800 */
 		--text: oklch(0.967 0.003 264.542); /* gray-100 */
 		--muted: oklch(0.707 0.022 261.325); /* gray-400 */
@@ -41,7 +43,7 @@ body { display: flex; flex-direction: column; }
 
 nav { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 10px; background: var(--bar); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
 nav button { -webkit-app-region: no-drag; display: flex; align-items: center; gap: 7px; flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; height: 30px; padding: 0 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: color .15s, background .15s; }
-nav button:hover { color: var(--text); background: var(--hover); }
+nav button:hover { color: var(--text); background: var(--bar-hover); }
 nav button.on { color: var(--accent); background: var(--accent-soft); }
 nav svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 #tabs { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
