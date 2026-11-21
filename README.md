@@ -1,6 +1,6 @@
 # Backlogs
 
-A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on this Mac: one tab per project, a card per project with its task counts, and a button to add a folder (a board is created in it if it has none).
+A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on this Mac: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none).
 
 Needs Node and the `backlog` CLI.
 
