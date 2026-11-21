@@ -21,6 +21,9 @@ const VENDOR = {
 	'/vendor/marked.js': 'marked/lib/marked.umd.js',
 	'/vendor/purify.js': 'dompurify/dist/purify.min.js',
 };
+const VSCODE = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+const IMAGES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+const TEXT = /\.(md|txt|js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|php|py|rb|sh|zsh|yml|yaml|toml|xml|swift|go|rs|c|h|java|kt|sql)$/i;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 const boards = new Map(); // port -> child process started here
@@ -180,8 +183,34 @@ function body(req) {
 	});
 }
 
+// A path from the chat: absolute, `~/…`, `file://…` or relative to the project, with an optional `:line`.
+function localPath(project, ref) {
+	let text = decodeURIComponent(String(ref || '').replace(/^file:\/\//, ''));
+	const [, file, line] = text.match(/^(.*?)(?::(\d+))?(?::\d+)?$/);
+	text = file.replace(/^~(?=\/|$)/, HOME);
+	return { file: path.resolve(project.dir, text), line };
+}
+
+// Opens a file: code at its line in VS Code, anything else in its default app (folders in Finder).
+function openLocal(project, ref) {
+	const { file, line } = localPath(project, ref);
+	if (!fs.existsSync(file)) return false;
+	if (TEXT.test(file) && fs.existsSync(VSCODE)) execFile(VSCODE, ['-g', line ? `${file}:${line}` : file]);
+	else execFile('open', [file]);
+	return true;
+}
+
+function serveImage(project, ref, res) {
+	const { file } = localPath(project, ref);
+	const type = IMAGES[path.extname(file).toLowerCase()];
+	if (!type || !fs.existsSync(file)) return send(res, 404, {});
+	res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
+	fs.createReadStream(file).pipe(res);
+}
+
 async function api(req, res) {
-	const [, , resource, id, action] = req.url.split('/');
+	const url = new URL(req.url, 'http://localhost');
+	const [, , resource, id, action] = url.pathname.split('/');
 	const list = load();
 	const project = list.find((p) => String(p.port) === id);
 	// Changes only from the app's own page, never from another site open in the browser.
@@ -203,6 +232,8 @@ async function api(req, res) {
 		execFile('open', ['-a', 'Visual Studio Code', project.dir]);
 		return send(res, 200, {});
 	}
+	if (req.method === 'GET' && action === 'image') return serveImage(project, url.searchParams.get('path'), res);
+	if (req.method === 'POST' && action === 'open') return send(res, 200, { ok: openLocal(project, (await body(req)).path) });
 	if (req.method === 'GET' && action === 'sessions') return send(res, 200, await claude.sessions(project));
 	if (req.method === 'DELETE' && action === 'claude') {
 		claude.stop(project.port);

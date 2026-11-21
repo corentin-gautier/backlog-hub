@@ -97,7 +97,11 @@ body.resizing iframe { pointer-events: none; }
 .claude .md p, .claude .md ul, .claude .md ol { margin: 0 0 8px; }
 .claude .md ul, .claude .md ol { padding-left: 20px; }
 .claude .md h1, .claude .md h2, .claude .md h3 { font-size: 14px; margin: 12px 0 6px; }
-.claude .md a { color: var(--accent); }
+.claude .md a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; }
+.claude .md a:hover { border-bottom-color: var(--accent); }
+.claude .md img { display: block; max-width: 100%; max-height: 320px; margin: 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; cursor: zoom-in; }
+.claude .md code.path { color: var(--accent); cursor: pointer; }
+.claude .md code.path:hover { text-decoration: underline; }
 .claude .md table { border-collapse: collapse; margin: 0 0 8px; font-size: 12.5px; }
 .claude .md th, .claude .md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
 .claude code, .claude pre { font: 12px/1.45 "SF Mono", Menlo, monospace; }

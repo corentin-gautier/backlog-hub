@@ -26,7 +26,42 @@ const Claude = (() => {
 		if (text != null) el.textContent = text;
 		return el;
 	};
-	const markdown = (text) => DOMPurify.sanitize(marked.parse(text, { breaks: true }));
+	const REMOTE = /^(https?:|mailto:|data:|blob:)/i;
+	const PATH = /^(~|\.{0,2}\/|[\w.-]+\/)?[\w .@+-]*(\/[\w .@+-]+)*\.[a-z]\w{0,7}(:\d+){0,2}$/i;
+
+	// Markdown to safe HTML; local images load through the server, file paths in code become clickable.
+	function markdown(text, port) {
+		const t = document.createElement('template');
+		t.innerHTML = DOMPurify.sanitize(marked.parse(text, { breaks: true }));
+		t.content.querySelectorAll('img').forEach((img) => {
+			const src = img.getAttribute('src') || '';
+			if (REMOTE.test(src)) return;
+			img.dataset.path = src;
+			img.src = `/api/projects/${port}/image?path=${encodeURIComponent(src)}`;
+		});
+		t.content.querySelectorAll('a').forEach((a) => {
+			a.target = '_blank';
+			a.rel = 'noopener';
+			a.title = a.getAttribute('href') || '';
+		});
+		t.content.querySelectorAll(':not(pre) > code').forEach((code) => {
+			if (!code.closest('a') && PATH.test(code.textContent.trim())) code.classList.add('path');
+		});
+		return t.innerHTML;
+	}
+
+	// Clicks in the chat: web links open in the browser, files open on the Mac (code in VS Code at its line).
+	function openLinks(panel) {
+		const open = (ref) => api(`projects/${panel.port}/open`, 'POST', { path: ref });
+		panel.log.addEventListener('click', (event) => {
+			const link = event.target.closest('.md a, .md img, .md code.path');
+			if (!link) return;
+			const ref = link.tagName === 'A' ? link.getAttribute('href') : link.tagName === 'IMG' ? link.dataset.path || link.src : link.textContent.trim();
+			if (REMOTE.test(ref)) return link.tagName === 'IMG' && window.open(ref, '_blank', 'noopener');
+			event.preventDefault();
+			open(ref);
+		});
+	}
 	const modelName = (id) => (id || '').replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-(\d+)$/, ' $1').replace(/^\w/, (c) => c.toUpperCase());
 
 	function send(panel, message) {
@@ -137,7 +172,7 @@ const Claude = (() => {
 			const detail = input.command || input.file_path || input.url;
 			if (detail) card.append(h('pre', '', detail));
 			if (name === 'Edit' || name === 'Write') card.append(diff(input));
-			if (name === 'ExitPlanMode' && input.plan) card.querySelector('.q').insertAdjacentHTML('afterend', `<div class="md">${markdown(input.plan)}</div>`);
+			if (name === 'ExitPlanMode' && input.plan) card.querySelector('.q').insertAdjacentHTML('afterend', `<div class="md">${markdown(input.plan, panel.port)}</div>`);
 			const row = h('div', 'row');
 			for (const [choice, text] of [['allow', 'Autoriser'], ['always', 'Toujours autoriser'], ['deny', 'Refuser']]) {
 				const button = h('button', choice === 'allow' ? 'btn primary' : 'btn', text);
@@ -158,7 +193,7 @@ const Claude = (() => {
 			panel.drawing = null;
 			if (!panel.draft) return;
 			const stick = nearBottom(panel.log);
-			panel.draft.innerHTML = markdown(panel.draftText);
+			panel.draft.innerHTML = markdown(panel.draftText, panel.port);
 			if (stick) panel.log.scrollTop = panel.log.scrollHeight;
 		});
 	}
@@ -195,7 +230,7 @@ const Claude = (() => {
 			case 'text': {
 				setDraft(panel, '');
 				const el = h('div', 'ai md');
-				el.innerHTML = markdown(event.text);
+				el.innerHTML = markdown(event.text, panel.port);
 				return append(panel, el);
 			}
 			case 'delta': return setDraft(panel, (panel.draft ? panel.draftText : '') + event.text);
@@ -261,6 +296,7 @@ const Claude = (() => {
 			log: el.querySelector('.log'), typing: el.querySelector('.typing'), input: el.querySelector('textarea'),
 			sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
 		});
+		openLinks(panel);
 		const { input } = panel;
 		const grow = () => {
 			input.style.height = 'auto';
