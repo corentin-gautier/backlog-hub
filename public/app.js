@@ -194,6 +194,9 @@ function tab(p) {
 		event.stopPropagation();
 		closeTab(String(p.port));
 	};
+	// Middle click closes the tab, as in a browser (mousedown is cancelled to skip autoscroll).
+	el.onmousedown = (event) => event.button === 1 && event.preventDefault();
+	el.onauxclick = (event) => event.button === 1 && closeTab(String(p.port));
 	el.append(dot, p.name, close);
 	draggable(el, 'tab');
 	return el;
