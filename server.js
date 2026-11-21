@@ -191,8 +191,9 @@ function localPath(project, ref) {
 	return { file: path.resolve(project.dir, text), line };
 }
 
-// Opens a file: code at its line in VS Code, anything else in its default app (folders in Finder).
+// Opens a web link in the default browser, or a file: code at its line in VS Code, anything else in its default app (folders in Finder).
 function openLocal(project, ref) {
+	if (/^(https?|mailto):/i.test(ref)) return execFile('open', [ref]), true;
 	const { file, line } = localPath(project, ref);
 	if (!fs.existsSync(file)) return false;
 	if (TEXT.test(file) && fs.existsSync(VSCODE)) execFile(VSCODE, ['-g', line ? `${file}:${line}` : file]);

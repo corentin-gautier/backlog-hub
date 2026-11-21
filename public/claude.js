@@ -50,15 +50,15 @@ const Claude = (() => {
 		return t.innerHTML;
 	}
 
-	// Clicks in the chat: web links open in the browser, files open on the Mac (code in VS Code at its line).
+	// Clicks in the chat, all opened by the server so the app never navigates away: web links in the default browser, files open on the Mac (code in VS Code at its line).
 	function openLinks(panel) {
 		const open = (ref) => api(`projects/${panel.port}/open`, 'POST', { path: ref });
 		panel.log.addEventListener('click', (event) => {
 			const link = event.target.closest('.md a, .md img, .md code.path');
 			if (!link) return;
 			const ref = link.tagName === 'A' ? link.getAttribute('href') : link.tagName === 'IMG' ? link.dataset.path || link.src : link.textContent.trim();
-			if (REMOTE.test(ref)) return link.tagName === 'IMG' && window.open(ref, '_blank', 'noopener');
 			event.preventDefault();
+			if (/^(data|blob):/i.test(ref)) return;
 			open(ref);
 		});
 	}
