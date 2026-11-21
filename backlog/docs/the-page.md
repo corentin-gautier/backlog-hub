@@ -34,8 +34,9 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 
 ## Claude Code
 
-- ✻ Claude in the top bar (shown on a project tab), or Ctrl+`, shows or hides a panel beside the board running `claude` in the project folder (xterm.js, `public/claude.js`). Always dark.
-- Hiding the panel (×) or switching tabs leaves Claude running; closing the project's tab stops it. ↻ restarts it, ↗ Terminal opens the same in Terminal.app.
+- ✻ Claude in the top bar (shown on a project tab), or Ctrl+`, shows or hides a chat beside the board with Claude Code in the project folder (`public/claude.js`): Markdown replies, tool calls (diffs for edits, output on click), permission and question cards, todo list.
+- Hiding the panel (×) or switching tabs leaves Claude running; closing the project's tab stops it. The clock lists earlier conversations, + starts a new one, ↗ opens the current one in Terminal.app.
+- ↵ sends, ⇧↵ adds a line, Esc (or ■) stops Claude. The chip under the input cycles the permission mode (ask, accept edits, plan, auto).
 - Drag the panel's left edge to resize it; the width and which panels are open are remembered (`localStorage`).
 
 ## Installing as an app

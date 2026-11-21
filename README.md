@@ -19,6 +19,6 @@ Then install the page as an app: in Safari, File › Add to Dock; in Chrome, the
 - The project list is `~/Library/Application Support/Backlogs/projects.json`. On first run it holds every board found in `~/Projects` and `~/Documents` (git worktrees skipped).
 - Each project keeps its config's `default_port`; a port already taken gets the next free one from 6430.
 - Removing a project only takes it off the list.
-- Claude Code panel (✻ Claude, or Ctrl+`): `claude.js` runs `claude` in the project folder in a login shell (node-pty) and streams it to the page over a WebSocket (xterm.js). It keeps running while the page is closed, and stops when the project's tab is closed.
+- Claude Code panel (✻ Claude, or Ctrl+`): a chat with Claude Code in the project folder, run by `claude.js` with the Agent SDK and streamed to the page over a WebSocket. It keeps running while the page is closed, stops when the project's tab is closed, and picks up the same conversation next time.
 - Log: `~/Library/Logs/Backlogs.log`. Run by hand: `npm install && node server.js`.
 - Icons: `rsvg-convert -w 512 public/icon.svg -o public/icon-512.png` (and 192).

@@ -1,28 +1,224 @@
-// Claude Code beside each board: a terminal running `claude` in the project folder,
-// streamed from the server (claude.js) over a WebSocket. Uses `frames`, `api`, `stored`
-// and `store` from app.js.
+// Claude beside each board: a chat with the project's Claude Code conversation, run on the server
+// (claude.js) and streamed over a WebSocket as simple events. Uses `frames`, `projects`, `api`,
+// `stored` and `store` from app.js, `marked` and `DOMPurify` from vendor/.
 const Claude = (() => {
-	const panels = {}; // port -> { el, term, fit, socket }
+	const panels = {}; // port -> { el, log, socket, tools, draft, busy, mode }
 	const shown = new Set(stored('claude', [])); // ports whose panel is open
-	const THEME = { background: '#030712', foreground: '#e5e7eb', cursor: '#e5e7eb', selectionBackground: '#374151' };
+	const MODES = { default: 'Demander avant d’agir', acceptEdits: 'Accepter les modifications', plan: 'Plan', auto: 'Auto' };
+	const CYCLE = ['default', 'acceptEdits', 'plan', 'auto'];
 
 	const setWidth = (px) => document.body.style.setProperty('--claude-width', `${px}px`);
-	setWidth(stored('claudeWidth', 520));
+	setWidth(stored('claudeWidth', 460));
+
+	const h = (tag, className, text) => {
+		const el = document.createElement(tag);
+		if (className) el.className = className;
+		if (text != null) el.textContent = text;
+		return el;
+	};
+	const markdown = (text) => DOMPurify.sanitize(marked.parse(text, { breaks: true }));
+	const modelName = (id) => (id || '').replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-(\d+)$/, ' $1').replace(/^\w/, (c) => c.toUpperCase());
 
 	function send(panel, message) {
 		if (panel.socket?.readyState === WebSocket.OPEN) panel.socket.send(JSON.stringify(message));
 	}
 
+	// ---- rendering ----
+
+	const nearBottom = (log) => log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+	function append(panel, el) {
+		const stick = nearBottom(panel.log);
+		panel.log.insertBefore(el, panel.typing);
+		if (stick) panel.log.scrollTop = panel.log.scrollHeight;
+	}
+
+	// A path relative to the project folder.
+	const short = (panel, file) => (file || '').replace(panel.dir + '/', '');
+
+	function describe(panel, name, input) {
+		const i = input || {};
+		const label = {
+			Read: () => short(panel, i.file_path), Write: () => short(panel, i.file_path), Edit: () => short(panel, i.file_path),
+			Bash: () => i.description || i.command, Grep: () => i.pattern, Glob: () => i.pattern,
+			WebFetch: () => i.url, WebSearch: () => i.query, Task: () => i.description, Agent: () => i.description, Skill: () => i.skill,
+		}[name]?.();
+		return label || '';
+	}
+
+	function diff(input) {
+		const pre = h('pre');
+		const lines = (text, sign, cls) => (text || '').split('\n').forEach((line) => pre.append(h('span', cls, `${sign} ${line}\n`)));
+		if (input.old_string != null) lines(input.old_string, '−', 'd');
+		lines(input.new_string ?? input.content, '+', 'a');
+		return pre;
+	}
+
+	function tool(panel, { id, name, input }) {
+		if (name === 'AskUserQuestion') return; // shown as its own card
+		if (name === 'TodoWrite') {
+			const box = h('div', 'todos');
+			for (const todo of input.todos || []) box.append(h('div', todo.status, `${{ completed: '☑', in_progress: '◐' }[todo.status] || '☐'} ${todo.content}`));
+			return append(panel, box);
+		}
+		const row = h('details', 'tool');
+		const summary = h('summary');
+		const state = h('span', 'state');
+		const label = describe(panel, name, input);
+		summary.append(state, h('b', '', name));
+		if (label) summary.append(h('code', '', label));
+		if (name === 'Edit' || name === 'Write') {
+			const added = (input.new_string ?? input.content ?? '').split('\n').length;
+			const removed = input.old_string != null ? input.old_string.split('\n').length : 0;
+			const count = h('span', 'n');
+			count.append(h('span', 'a', `+${added}`), removed ? h('span', 'd', ` −${removed}`) : '');
+			summary.append(count);
+			row.append(summary, diff(input));
+		} else {
+			row.append(summary);
+			if (name === 'Bash' && input.command) row.append(h('pre', 'cmd', `$ ${input.command}`));
+		}
+		panel.tools[id] = row;
+		append(panel, row);
+	}
+
+	function result(panel, { id, error, text }) {
+		const row = panel.tools[id];
+		if (!row) return;
+		row.classList.add(error ? 'failed' : 'ok');
+		if (text && !['Edit', 'Write'].includes(row.querySelector('b').textContent)) row.append(h('pre', 'out', text));
+	}
+
+	function ask(panel, { id, name, input, title }) {
+		const card = h('div', 'ask');
+		card.dataset.ask = id;
+		const answer = (choice, answers) => send(panel, { type: 'answer', id, choice, answers });
+		if (name === 'AskUserQuestion') {
+			const answers = {};
+			const questions = input.questions || [];
+			const submit = h('button', 'btn primary', 'Répondre');
+			const ready = () => (submit.disabled = questions.some((q) => !answers[q.question]));
+			for (const q of questions) {
+				card.append(h('div', 'q', q.question));
+				const row = h('div', 'options');
+				for (const option of q.options) {
+					const button = h('button', 'btn option', option.label);
+					button.title = option.description || '';
+					button.onclick = () => {
+						if (q.multiSelect) button.classList.toggle('on');
+						else row.querySelectorAll('.btn').forEach((b) => b.classList.toggle('on', b === button));
+						answers[q.question] = [...row.querySelectorAll('.btn.on')].map((b) => b.textContent).join(', ');
+						if (questions.length === 1 && !q.multiSelect) return answer('allow', answers);
+						ready();
+					};
+					row.append(button);
+				}
+				card.append(row);
+			}
+			const row = h('div', 'row');
+			if (questions.length > 1 || questions.some((q) => q.multiSelect)) row.append(submit);
+			const other = h('button', 'btn', 'Ignorer');
+			other.onclick = () => answer('deny');
+			row.append(other);
+			card.append(row);
+			ready();
+			submit.onclick = () => answer('allow', answers);
+		} else {
+			card.append(h('div', 'q', title || `Claude veut utiliser ${name}`));
+			const detail = input.command || input.file_path || input.url;
+			if (detail) card.append(h('pre', '', detail));
+			if (name === 'Edit' || name === 'Write') card.append(diff(input));
+			if (name === 'ExitPlanMode' && input.plan) card.querySelector('.q').insertAdjacentHTML('afterend', `<div class="md">${markdown(input.plan)}</div>`);
+			const row = h('div', 'row');
+			for (const [choice, text] of [['allow', 'Autoriser'], ['always', 'Toujours autoriser'], ['deny', 'Refuser']]) {
+				const button = h('button', choice === 'allow' ? 'btn primary' : 'btn', text);
+				button.onclick = () => answer(choice);
+				row.append(button);
+			}
+			card.append(row);
+		}
+		append(panel, card);
+	}
+
+	function setDraft(panel, text) {
+		if (!text) return panel.draft?.remove(), (panel.draft = null);
+		if (!panel.draft) append(panel, (panel.draft = h('div', 'ai md')));
+		panel.draftText = text;
+		if (panel.drawing) return;
+		panel.drawing = requestAnimationFrame(() => {
+			panel.drawing = null;
+			if (!panel.draft) return;
+			const stick = nearBottom(panel.log);
+			panel.draft.innerHTML = markdown(panel.draftText);
+			if (stick) panel.log.scrollTop = panel.log.scrollHeight;
+		});
+	}
+
+	function setBusy(panel, value) {
+		panel.busy = value;
+		panel.typing.hidden = !value;
+		panel.el.classList.toggle('busy', value);
+		if (!value) setDraft(panel, '');
+		sendState(panel);
+	}
+
+	function sendState(panel) {
+		const stop = panel.busy && !panel.input.value.trim();
+		panel.sendButton.classList.toggle('stop', stop);
+		panel.sendButton.textContent = stop ? '■' : '↑';
+		panel.sendButton.title = stop ? 'Arrêter (Esc)' : 'Envoyer (↵)';
+	}
+
+	function info(panel, { model, mode }) {
+		panel.mode = mode;
+		panel.modelChip.textContent = modelName(model) || '…';
+		panel.modelChip.hidden = !model;
+		panel.modeChip.textContent = MODES[mode] || mode || '…';
+	}
+
+	function render(panel, event) {
+		switch (event.type) {
+			case 'user': return append(panel, h('div', 'me', event.text));
+			case 'text': {
+				setDraft(panel, '');
+				const el = h('div', 'ai md');
+				el.innerHTML = markdown(event.text);
+				return append(panel, el);
+			}
+			case 'delta': return setDraft(panel, (panel.draft ? panel.draftText : '') + event.text);
+			case 'tool': return tool(panel, event);
+			case 'result': return result(panel, event);
+			case 'ask': return ask(panel, event);
+			case 'answered': return panel.log.querySelector(`[data-ask="${event.id}"]`)?.remove();
+			case 'error': return append(panel, h('div', 'error', event.text));
+			case 'busy': return setBusy(panel, event.value);
+			case 'info': return info(panel, event);
+			case 'reset': {
+				panel.log.replaceChildren(panel.typing);
+				panel.tools = {};
+				panel.draft = null;
+				const answered = new Set(event.events.filter((e) => e.type === 'answered').map((e) => e.id));
+				for (const e of event.events) if (!(e.type === 'ask' && answered.has(e.id)) && e.type !== 'answered') render(panel, e);
+				if (!event.events.length) panel.log.prepend(h('div', 'empty', `Claude Code dans ${panel.place}. Demande-lui ce que tu veux.`));
+				setBusy(panel, event.busy);
+				if (event.draft) setDraft(panel, event.draft);
+				info(panel, event);
+				panel.log.scrollTop = panel.log.scrollHeight;
+			}
+		}
+	}
+
+	// ---- panel ----
+
 	function connect(port) {
 		const panel = panels[port];
-		const { term } = panel;
-		const socket = new WebSocket(`ws://${location.host}/claude/${port}?cols=${term.cols}&rows=${term.rows}`);
+		if (!panel) return;
+		const socket = new WebSocket(`ws://${location.host}/claude/${port}`);
 		panel.socket = socket;
-		socket.onmessage = (event) => term.write(event.data);
-		socket.onclose = () => {
-			if (panel.socket !== socket) return;
+		socket.onmessage = (event) => render(panel, JSON.parse(event.data));
+		socket.onclose = (event) => {
+			if (panel.socket !== socket || panels[port] !== panel) return;
 			panel.socket = null;
-			term.write('\r\n\x1b[2m[Claude Code arrêté : ↻ pour le relancer]\x1b[0m\r\n');
+			if (event.code !== 4000) setTimeout(() => connect(port), 1500); // server restarting
 		};
 	}
 
@@ -32,36 +228,76 @@ const Claude = (() => {
 		el.className = 'claude';
 		el.innerHTML = `
 			<div class="grip" title="Glisser pour élargir"></div>
-			<header><span class="spark">✻</span><b>Claude Code</b><span class="where"></span>
-				<button data-act="terminal" title="Ouvrir dans Terminal">↗ Terminal</button>
-				<button data-act="restart" title="Relancer Claude Code">↻</button>
+			<header><span class="spark">✻</span><b>Claude</b><span class="where"></span>
+				<button data-act="history" title="Conversations précédentes"><svg viewBox="0 0 16 16"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.8v2.4h2.4M8 5v3.2l2.2 1.4"/></svg></button>
+				<button data-act="new" title="Nouvelle conversation"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
+				<button data-act="terminal" title="Ouvrir cette conversation dans Terminal">↗</button>
 				<button data-act="hide" title="Masquer (Ctrl+\`), Claude continue">×</button></header>
-			<div class="term"></div>`;
+			<div class="history" hidden></div>
+			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude travaille…</span></div></div>
+			<form class="composer">
+				<textarea rows="1" placeholder="Écris à Claude… (↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
+				<div class="bar"><span class="chip model" hidden></span><button type="button" class="chip mode" title="Mode d’autorisation (cliquer pour changer)"></button><button class="send">↑</button></div>
+			</form>`;
 		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
 		frames[port].append(el);
 
-		const term = new Terminal({ theme: THEME, fontFamily: 'SF Mono, Menlo, monospace', fontSize: 12.5, lineHeight: 1.2, cursorBlink: true, allowProposedApi: true });
-		const fit = new FitAddon.FitAddon();
-		term.loadAddon(fit);
-		term.open(el.querySelector('.term'));
-		term.attachCustomKeyEventHandler((event) => !(event.ctrlKey && event.key === '`'));
-		panels[port] = { el, term, fit, socket: null };
-		term.onData((data) => send(panels[port], { type: 'input', data }));
-		term.onResize(({ cols, rows }) => send(panels[port], { type: 'resize', cols, rows }));
-		new ResizeObserver(() => el.offsetWidth && fit.fit()).observe(el.querySelector('.term'));
-		fit.fit();
-		connect(port);
+		const panel = (panels[port] = {
+			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false,
+			log: el.querySelector('.log'), typing: el.querySelector('.typing'), input: el.querySelector('textarea'),
+			sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
+		});
+		const { input } = panel;
+		const grow = () => {
+			input.style.height = 'auto';
+			input.style.height = `${Math.min(input.scrollHeight, 220)}px`;
+			sendState(panel);
+		};
+		input.oninput = grow;
+		input.onkeydown = (event) => {
+			if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+				event.preventDefault();
+				el.querySelector('form').requestSubmit();
+			}
+			if (event.key === 'Escape' && panel.busy) send(panel, { type: 'stop' });
+		};
+		el.querySelector('form').onsubmit = (event) => {
+			event.preventDefault();
+			const text = input.value.trim();
+			if (!text) return panel.busy && send(panel, { type: 'stop' });
+			send(panel, { type: 'send', text });
+			input.value = '';
+			grow();
+		};
+		panel.modeChip.onclick = () => send(panel, { type: 'mode', mode: CYCLE[(CYCLE.indexOf(panel.mode) + 1) % CYCLE.length] });
 
 		el.querySelector('[data-act=terminal]').onclick = () => api(`projects/${port}/terminal`, 'POST');
 		el.querySelector('[data-act=hide]').onclick = () => toggle(port, false);
-		el.querySelector('[data-act=restart]').onclick = async () => {
-			panels[port].socket = null;
-			await api(`projects/${port}/claude`, 'DELETE');
-			term.reset();
-			connect(port);
-			term.focus();
+		el.querySelector('[data-act=new]').onclick = () => {
+			send(panel, { type: 'open' });
+			input.focus();
 		};
+		el.querySelector('[data-act=history]').onclick = () => history(panel);
 		resizable(el.querySelector('.grip'));
+		connect(port);
+	}
+
+	async function history(panel) {
+		const box = panel.el.querySelector('.history');
+		if (!box.hidden) return (box.hidden = true);
+		box.replaceChildren(h('div', 'none', '…'));
+		box.hidden = false;
+		const list = await api(`projects/${panel.port}/sessions`);
+		box.replaceChildren(...(list.length ? [] : [h('div', 'none', 'Aucune conversation.')]));
+		for (const s of list) {
+			const item = h('button', 'item');
+			item.append(h('span', 'title', s.title), h('span', 'when', new Date(s.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
+			item.onclick = () => {
+				box.hidden = true;
+				send(panel, { type: 'open', sessionId: s.id });
+			};
+			box.append(item);
+		}
 	}
 
 	function resizable(grip) {
@@ -81,7 +317,7 @@ const Claude = (() => {
 		};
 	}
 
-	// Shows or hides the panel of a board (force: true or false), starting Claude on first show.
+	// Shows or hides the panel of a board (force: true or false), connecting on first show.
 	function toggle(port, force) {
 		if (!port || !frames[port]) return;
 		const show = force ?? !visible(port);
@@ -89,22 +325,18 @@ const Claude = (() => {
 		if (panels[port]) panels[port].el.hidden = !show;
 		show ? shown.add(port) : shown.delete(port);
 		store('claude', [...shown]);
-		if (show) requestAnimationFrame(() => {
-			panels[port].fit.fit();
-			panels[port].term.focus();
-		});
+		if (show) requestAnimationFrame(() => panels[port].input.focus());
 		highlight();
 	}
 
 	const visible = (port) => Boolean(panels[port] && !panels[port].el.hidden);
 
-	// The board's tab is closed: Claude stops.
+	// The board's tab is closed: Claude stops (the conversation is kept and reopened next time).
 	function stop(port) {
 		const panel = panels[port];
 		if (panel) {
-			panel.socket = null;
-			panel.term.dispose();
 			delete panels[port];
+			panel.socket?.close();
 		}
 		api(`projects/${port}/claude`, 'DELETE');
 		shown.delete(port);

@@ -16,11 +16,10 @@ const DATA_DIR = path.join(HOME, 'Library/Application Support/Backlogs');
 const LIST = path.join(DATA_DIR, 'projects.json');
 const PUBLIC = path.join(__dirname, 'public');
 const ORIGINS = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
-// Files served from node_modules: the terminal in the page.
+// Files served from node_modules: Markdown for the Claude chat.
 const VENDOR = {
-	'/vendor/xterm.js': '@xterm/xterm/lib/xterm.js',
-	'/vendor/xterm.css': '@xterm/xterm/css/xterm.css',
-	'/vendor/addon-fit.js': '@xterm/addon-fit/lib/addon-fit.js',
+	'/vendor/marked.js': 'marked/lib/marked.umd.js',
+	'/vendor/purify.js': 'dompurify/dist/purify.min.js',
 };
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
@@ -197,9 +196,10 @@ async function api(req, res) {
 	if (!project) return send(res, 404, {});
 	if (req.method === 'POST' && action === 'start') return send(res, 200, { url: await start(project) });
 	if (req.method === 'POST' && action === 'terminal') {
-		claude.openInTerminal(project.dir);
+		claude.openInTerminal(project);
 		return send(res, 200, {});
 	}
+	if (req.method === 'GET' && action === 'sessions') return send(res, 200, await claude.sessions(project));
 	if (req.method === 'DELETE' && action === 'claude') {
 		claude.stop(project.port);
 		return send(res, 200, {});
@@ -216,7 +216,7 @@ async function api(req, res) {
 function serveFile(req, res) {
 	const url = req.url.split('?')[0];
 	const name = url === '/' ? 'index.html' : path.normalize(url).replace(/^\/+/, '');
-	const file = VENDOR[url] ? require.resolve(VENDOR[url]) : path.join(PUBLIC, name);
+	const file = VENDOR[url] ? path.join(__dirname, 'node_modules', VENDOR[url]) : path.join(PUBLIC, name);
 	if (!(VENDOR[url] || file.startsWith(PUBLIC)) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
 		res.writeHead(404);
 		return res.end();
@@ -229,7 +229,7 @@ const server = http.createServer((req, res) => {
 	if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
 	else serveFile(req, res);
 });
-claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS);
+claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS, DATA_DIR);
 server.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

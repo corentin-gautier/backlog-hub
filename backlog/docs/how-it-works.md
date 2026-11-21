@@ -4,7 +4,7 @@ title: "How it works"
 type: specification
 ---
 
-`server.js`, plus `claude.js` for the Claude Code terminal (dependencies: `node-pty`, `ws`, `@xterm/xterm`, `@xterm/addon-fit`; `npm install` runs a `postinstall` that makes node-pty's `spawn-helper` executable). Serves `public/` on `127.0.0.1:6400` (`BACKLOGS_PORT` to override).
+`server.js`, plus `claude.js` for the Claude chat (dependencies: `@anthropic-ai/claude-agent-sdk`, `ws`, and `marked` + `dompurify` served to the page). Serves `public/` on `127.0.0.1:6400` (`BACKLOGS_PORT` to override).
 
 ## Running
 
@@ -55,16 +55,19 @@ Read from `backlog/tasks/*.md` `status:` lines: `Done`, `In Progress`, anything 
 | `POST /api/projects` | Folder dialog, add; returns `{ port, categories, projects }` |
 | `PUT /api/layout` | `{ categories, order: [{ port, category }] }`: saves categories and order |
 | `POST /api/projects/<port>/start` | Starts the board; returns `{ url }` |
-| `POST /api/projects/<port>/terminal` | Opens Terminal.app in the folder, running `claude` |
+| `POST /api/projects/<port>/terminal` | Opens Terminal.app in the folder, running `claude --resume <current conversation>` |
+| `GET /api/projects/<port>/sessions` | The project's earlier conversations, newest first: `[{ id, title, at }]` |
 | `DELETE /api/projects/<port>/claude` | Stops the project's Claude Code |
 | `DELETE /api/projects/<port>` | Removes from the list (and stops its Claude Code) |
-| `WS /claude/<port>?cols=&rows=` | The project's Claude Code terminal (below) |
+| `WS /claude/<port>` | The project's Claude conversation (below) |
 
-- Anything but a GET, and the WebSocket, must come from the app's own origin (`http://localhost:6400`): another site open in the browser can't change the list or reach a shell.
-- Other paths serve files from `public/`, and `/vendor/*` the xterm files from `node_modules` (no-cache, nothing else).
+- Anything but a GET, and the WebSocket, must come from the app's own origin (`http://localhost:6400`): another site open in the browser can't change the list or talk to Claude.
+- Other paths serve files from `public/`, and `/vendor/*` the `marked` and `dompurify` files from `node_modules` (no-cache, nothing else).
 
 ## Claude Code
 
-- One terminal per project, started on the first connection: the user's login shell (`$SHELL -ilc 'claude; exec $SHELL -il'`) in the project folder, so PATH and the rest come from the profile; the shell stays if `claude` exits.
-- Messages from the page: `{ type: 'input', data }`, `{ type: 'resize', cols, rows }`; the server sends raw output.
-- The last 256 KB of output are kept and replayed when the page reconnects (reload, app relaunch). Stopped by closing the project's tab, ↻, or the server stopping.
+- One conversation per project, run with the Agent SDK (`query`, Claude Code preset, the user's settings) in the project folder; the SDK process starts on the first message.
+- The project's current conversation id is kept in `~/Library/Application Support/Backlogs/claude.json`; its transcript is loaded (`getSessionMessages`) on connection and resumed (`resume`) on the next message, so it survives restarts.
+- Page → server: `send { text }`, `stop`, `answer { id, choice: allow|always|deny, answers }`, `mode { mode }`, `open { sessionId? }` (new or earlier conversation).
+- Server → page: `reset` (all events + state, on connection), then `user`, `text`, `delta` (streamed text), `tool`, `result`, `ask` / `answered` (permission prompts and AskUserQuestion, through `canUseTool`), `busy`, `info { model, mode }`, `error`.
+- Keeps running while the page is closed; stopped by closing the project's tab or the server stopping (the conversation is kept).

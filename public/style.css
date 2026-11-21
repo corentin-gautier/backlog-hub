@@ -69,18 +69,86 @@ nav button[hidden] { display: none; }
 body.resizing { cursor: col-resize; user-select: none; }
 body.resizing iframe { pointer-events: none; }
 
-/* Claude Code panel: always dark, like a terminal. */
-.claude { position: relative; flex: none; width: var(--claude-width, 520px); max-width: calc(100vw - 360px); display: flex; flex-direction: column; background: #030712; border-left: 1px solid var(--line); color: #9ca3af; }
+/* Claude panel: a chat with the project's Claude Code, in the app's palette. */
+.claude { position: relative; flex: none; width: var(--claude-width, 460px); max-width: calc(100vw - 360px); display: flex; flex-direction: column; background: var(--bg); border-left: 1px solid var(--line); font-size: 13.5px; }
 .claude[hidden] { display: none; }
-.claude .grip { position: absolute; z-index: 1; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; }
-.claude .grip::after { content: ""; position: absolute; left: 3px; top: 50%; height: 36px; margin-top: -18px; width: 2px; border-radius: 2px; background: #374151; opacity: 0; transition: opacity .15s; }
+.claude .grip { position: absolute; z-index: 2; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; }
+.claude .grip::after { content: ""; position: absolute; left: 3px; top: 50%; height: 36px; margin-top: -18px; width: 2px; border-radius: 2px; background: var(--dash); opacity: 0; transition: opacity .15s; }
 .claude:hover .grip::after, body.resizing .grip::after { opacity: 1; }
-.claude header { display: flex; align-items: center; gap: 7px; height: 38px; flex: none; padding: 0 8px 0 14px; border-bottom: 1px solid #1f2937; font-size: 13px; white-space: nowrap; }
-.claude header b { color: #f3f4f6; font-weight: 600; }
-.claude .where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.claude header button { font: inherit; color: #6b7280; background: none; border: 0; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
-.claude header button:hover { color: #f3f4f6; background: #1f2937; }
-.claude .term { flex: 1; min-height: 0; padding: 8px 4px 4px 12px; }
+.claude header { display: flex; align-items: center; gap: 4px; height: 40px; flex: none; padding: 0 6px 0 14px; border-bottom: 1px solid var(--line); font-size: 13px; white-space: nowrap; }
+.claude header b { font-weight: 600; margin-left: 3px; }
+.claude .where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--faint); margin-left: 3px; }
+.claude header button { display: grid; place-items: center; min-width: 28px; height: 28px; font: inherit; color: var(--faint); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.claude header button:hover { color: var(--text); background: var(--hover); }
+.claude header svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.claude .history { position: absolute; z-index: 1; top: 40px; left: 0; right: 0; max-height: 60%; overflow: auto; background: var(--card); border-bottom: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .12); padding: 6px; }
+.claude .history .item { display: flex; gap: 10px; width: 100%; padding: 8px 10px; font: inherit; color: var(--text); background: none; border: 0; border-radius: 6px; text-align: left; cursor: pointer; }
+.claude .history .item:hover { background: var(--hover); }
+.claude .history .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claude .history .when, .claude .history .none { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.claude .history .none { padding: 8px 10px; }
+
+.claude .log { flex: 1; min-height: 0; overflow: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 10px; line-height: 1.55; }
+.claude .empty { margin: auto; color: var(--faint); text-align: center; padding: 0 24px; }
+.claude .me { align-self: flex-end; max-width: 85%; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--accent-soft); padding: 8px 12px; border-radius: 14px 14px 4px 14px; }
+.claude .md { overflow-wrap: anywhere; }
+.claude .md > :first-child { margin-top: 0; }
+.claude .md > :last-child { margin-bottom: 0; }
+.claude .md p, .claude .md ul, .claude .md ol { margin: 0 0 8px; }
+.claude .md ul, .claude .md ol { padding-left: 20px; }
+.claude .md h1, .claude .md h2, .claude .md h3 { font-size: 14px; margin: 12px 0 6px; }
+.claude .md a { color: var(--accent); }
+.claude .md table { border-collapse: collapse; margin: 0 0 8px; font-size: 12.5px; }
+.claude .md th, .claude .md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+.claude code, .claude pre { font: 12px/1.45 "SF Mono", Menlo, monospace; }
+.claude .md :not(pre) > code, .claude .tool code { background: var(--bar); padding: 1px 5px; border-radius: 4px; }
+.claude pre { margin: 6px 0 0; padding: 8px 10px; background: var(--bar); border-radius: 6px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.claude .md pre { margin: 0 0 8px; }
+.claude pre .a { color: oklch(0.627 0.194 149.214); }
+.claude pre .d { color: oklch(0.637 0.237 25.331); }
+
+.claude .tool { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 5px 10px; }
+.claude .tool + .tool { margin-top: -6px; }
+.claude .tool summary { display: flex; align-items: center; gap: 7px; min-width: 0; cursor: pointer; list-style: none; white-space: nowrap; }
+.claude .tool summary::-webkit-details-marker { display: none; }
+.claude .tool summary b { font-weight: 500; color: var(--text); }
+.claude .tool summary code { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.claude .tool .n { margin-left: auto; font: 11.5px "SF Mono", Menlo, monospace; }
+.claude .tool .n .a { color: oklch(0.627 0.194 149.214); }
+.claude .tool .n .d { color: oklch(0.637 0.237 25.331); }
+.claude .tool .state { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--dash); border-top-color: var(--accent); animation: spin 1s linear infinite; }
+.claude .tool.ok .state, .claude .tool.failed .state { border: 0; animation: none; display: grid; place-items: center; font-size: 11px; }
+.claude .tool.ok .state::before { content: "✓"; color: var(--done); }
+.claude .tool.failed .state::before { content: "✕"; color: oklch(0.637 0.237 25.331); }
+.claude .tool pre.out { max-height: 240px; }
+.claude .todos { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; }
+.claude .todos .completed { text-decoration: line-through; color: var(--faint); }
+.claude .todos .in_progress { color: var(--text); font-weight: 500; }
+.claude .error { color: oklch(0.637 0.237 25.331); font-size: 12.5px; white-space: pre-wrap; }
+
+.claude .ask { border: 1px solid color-mix(in srgb, var(--doing) 70%, transparent); background: color-mix(in srgb, var(--doing) 10%, var(--card)); border-radius: 10px; padding: 10px 12px; }
+.claude .ask .q { font-weight: 500; margin-bottom: 6px; }
+.claude .ask pre { max-height: 200px; }
+.claude .ask .row, .claude .ask .options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.claude .btn { font: inherit; font-size: 12.5px; font-weight: 500; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+.claude .btn:hover { border-color: var(--dash); }
+.claude .btn.primary, .claude .btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.claude .btn:disabled { opacity: .5; cursor: default; }
+.claude .typing { display: flex; gap: 7px; align-items: center; color: var(--faint); font-size: 12.5px; }
+.claude .typing[hidden] { display: none; }
+.claude .typing .spark { display: inline-block; animation: spin 2.4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.claude .composer { flex: none; margin: 6px 12px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 10px 8px 8px 12px; }
+.claude .composer:focus-within { border-color: var(--dash); }
+.claude textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: none; color: var(--text); font: inherit; line-height: 1.5; padding: 0; min-height: 21px; }
+.claude .bar { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+.claude .chip { font: inherit; padding: 3px 8px; border-radius: 6px; border: 0; background: var(--hover); color: var(--muted); }
+.claude .chip[hidden] { display: none; }
+.claude button.chip { cursor: pointer; }
+.claude button.chip:hover { color: var(--text); }
+.claude .send { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-size: 15px; cursor: pointer; }
+.claude .send.stop { background: var(--text); color: var(--bg); font-size: 11px; }
 
 #home { flex: 1; padding: 48px 56px 56px; display: none; overflow: auto; }
 #home.on { display: block; }
