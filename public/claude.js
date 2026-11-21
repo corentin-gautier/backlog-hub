@@ -5,6 +5,16 @@ const Claude = (() => {
 	const panels = {}; // port -> { el, log, socket, tools, draft, busy, mode }
 	const shown = new Set(stored('claude', [])); // ports whose panel is open
 	const MODES = { default: 'Demander avant d’agir', acceptEdits: 'Accepter les modifications', plan: 'Plan', auto: 'Auto' };
+	const SHORT = { default: 'Demander', acceptEdits: 'Modifier', plan: 'Plan', auto: 'Auto' };
+	const icon = (d) => `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}"/></svg>`;
+	const ICONS = {
+		default: icon('M8 2.2 12.8 4v3.6c0 2.9-2 5-4.8 6.2C5.2 12.6 3.2 10.5 3.2 7.6V4Z'),
+		acceptEdits: icon('M10.2 3.3l2.5 2.5-6.9 6.9H3.3v-2.5Z'),
+		plan: icon('M3 4.5h10M3 8h10M3 11.5h6'),
+		auto: icon('M9 1.8 3.8 9h4.1l-.9 5.2L12.2 7H8.1Z'),
+		send: icon('M8 12.5v-9M4 7.5l4-4 4 4'),
+		stop: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5"/></svg>',
+	};
 	const CYCLE = ['default', 'acceptEdits', 'plan', 'auto'];
 
 	const setWidth = (px) => document.body.style.setProperty('--claude-width', `${px}px`);
@@ -164,7 +174,8 @@ const Claude = (() => {
 	function sendState(panel) {
 		const stop = panel.busy && !panel.input.value.trim();
 		panel.sendButton.classList.toggle('stop', stop);
-		panel.sendButton.textContent = stop ? '■' : '↑';
+		panel.sendButton.innerHTML = stop ? ICONS.stop : ICONS.send;
+		panel.sendButton.classList.toggle('idle', !stop && !panel.input.value.trim());
 		panel.sendButton.title = stop ? 'Arrêter (Esc)' : 'Envoyer (↵)';
 	}
 
@@ -172,7 +183,10 @@ const Claude = (() => {
 		panel.mode = mode;
 		panel.modelChip.textContent = modelName(model) || '…';
 		panel.modelChip.hidden = !model;
-		panel.modeChip.textContent = MODES[mode] || mode || '…';
+		panel.modeChip.dataset.mode = mode;
+		panel.modeChip.innerHTML = `${ICONS[mode] || ''}<span></span>`;
+		panel.modeChip.lastChild.textContent = SHORT[mode] || mode || '…';
+		panel.modeChip.title = `${MODES[mode] || mode} (cliquer pour changer)`;
 	}
 
 	function render(panel, event) {
@@ -237,7 +251,7 @@ const Claude = (() => {
 			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude travaille…</span></div></div>
 			<form class="composer">
 				<textarea rows="1" placeholder="Écris à Claude… (↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
-				<div class="bar"><span class="chip model" hidden></span><button type="button" class="chip mode" title="Mode d’autorisation (cliquer pour changer)"></button><button class="send">↑</button></div>
+				<div class="bar"><span class="chip model" hidden></span><button type="button" class="chip mode" title="Mode d’autorisation (cliquer pour changer)"></button><button class="send idle"></button></div>
 			</form>`;
 		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
 		frames[port].append(el);

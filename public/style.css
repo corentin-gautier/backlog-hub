@@ -139,16 +139,25 @@ body.resizing iframe { pointer-events: none; }
 .claude .typing .spark { display: inline-block; animation: spin 2.4s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.claude .composer { flex: none; margin: 6px 12px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 10px 8px 8px 12px; }
-.claude .composer:focus-within { border-color: var(--dash); }
-.claude textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: none; color: var(--text); font: inherit; line-height: 1.5; padding: 0; min-height: 21px; }
-.claude .bar { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
-.claude .chip { font: inherit; padding: 3px 8px; border-radius: 6px; border: 0; background: var(--hover); color: var(--muted); }
+.claude .composer { flex: none; margin: 4px 12px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); padding: 11px 8px 8px 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, .05); transition: border-color .15s, box-shadow .15s; }
+.claude .composer:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+.claude textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: none; color: var(--text); font: inherit; line-height: 1.5; padding: 0 6px 0 0; min-height: 21px; }
+.claude textarea::placeholder { color: var(--faint); }
+.claude .bar { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 12px; }
+.claude .chip { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; height: 26px; font: inherit; font-weight: 500; padding: 0 9px; border-radius: 13px; border: 0; background: none; color: var(--faint); }
 .claude .chip[hidden] { display: none; }
-.claude button.chip { cursor: pointer; }
-.claude button.chip:hover { color: var(--text); }
-.claude .send { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-size: 15px; cursor: pointer; }
-.claude .send.stop { background: var(--text); color: var(--bg); font-size: 11px; }
+.claude .chip svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.claude button.chip { --tint: var(--muted); color: var(--tint); background: color-mix(in srgb, var(--tint) 10%, transparent); cursor: pointer; transition: background .15s; }
+.claude button.chip:hover { background: color-mix(in srgb, var(--tint) 18%, transparent); }
+.claude .chip[data-mode=acceptEdits] { --tint: oklch(0.585 0.233 292.717); } /* violet-500 */
+.claude .chip[data-mode=plan] { --tint: oklch(0.6 0.118 184.704); } /* teal-600 */
+.claude .chip[data-mode=auto] { --tint: oklch(0.666 0.179 58.318); } /* amber-600 */
+.claude .chip.model { order: 1; margin-left: auto; padding: 0 6px; }
+.claude .send { order: 2; flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; transition: background .15s, opacity .15s; }
+.claude .send svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.claude .send.idle { background: var(--line); color: var(--faint); cursor: default; }
+.claude .send.stop { background: var(--text); color: var(--bg); }
+.claude .send.stop svg { fill: currentColor; stroke: none; width: 14px; height: 14px; }
 
 #home { flex: 1; padding: 48px 56px 56px; display: none; overflow: auto; }
 #home.on { display: block; }
