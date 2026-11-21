@@ -1,4 +1,5 @@
-// One tab per project; each board loads in its own iframe, kept so it stays where it was left.
+// One tab per open project; each board loads in its own pane (an iframe, and Claude Code beside it),
+// kept so it stays where it was left.
 const frames = {};
 let projects = [];
 let categories = [];
@@ -201,6 +202,7 @@ function tab(p) {
 function closeTab(port) {
 	const index = open.indexOf(port);
 	open.splice(index, 1);
+	Claude.stop(port);
 	frames[port]?.remove();
 	delete frames[port];
 	if (current === port) show(open[Math.min(index, open.length - 1)] || '');
@@ -252,7 +254,9 @@ function newCard() {
 function highlight() {
 	document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', (b.dataset.port || '') === current));
 	$('#home').classList.toggle('on', !current);
-	Object.entries(frames).forEach(([port, frame]) => frame.classList.toggle('on', port === current));
+	Object.entries(frames).forEach(([port, pane]) => pane.classList.toggle('on', port === current));
+	$('#claude').hidden = !current;
+	$('#claude').classList.toggle('on', Claude.visible(current));
 }
 
 async function show(port) {
@@ -265,9 +269,13 @@ async function show(port) {
 	highlight();
 	if (!port) return refresh();
 	if (!frames[port]) {
+		const pane = document.createElement('div');
 		const frame = document.createElement('iframe');
-		frames[port] = frame;
-		document.body.append(frame);
+		pane.className = 'pane';
+		pane.append(frame);
+		frames[port] = pane;
+		document.body.append(pane);
+		if (Claude.wasShown(port)) Claude.toggle(port, true);
 		highlight();
 		frame.src = (await api(`projects/${port}/start`, 'POST')).url;
 	}
@@ -291,6 +299,13 @@ $('#today').textContent = today;
 $('#tabs [data-home]').onclick = () => show('');
 $('#add').onclick = add;
 $('#new-category').onclick = newCategory;
+$('#claude').onclick = () => Claude.toggle(current);
+addEventListener('keydown', (event) => {
+	if (event.ctrlKey && event.key === '`') {
+		event.preventDefault();
+		Claude.toggle(current);
+	}
+});
 
 refresh().then(() => show(open.includes(stored('tab', '')) ? stored('tab', '') : ''));
 

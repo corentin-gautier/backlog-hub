@@ -59,8 +59,28 @@ nav button.on .close { color: inherit; }
 #add { width: 30px; padding: 0; justify-content: center; }
 #add svg { width: 16px; height: 16px; }
 
-iframe { flex: 1; width: 100%; border: 0; display: none; background: var(--bg); }
-iframe.on { display: block; }
+nav button[hidden] { display: none; }
+.spark { color: #d97757; }
+#claude.on { color: var(--accent); background: var(--accent-soft); }
+
+.pane { flex: 1; min-height: 0; display: none; }
+.pane.on { display: flex; }
+.pane iframe { flex: 1; min-width: 0; border: 0; background: var(--bg); }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing iframe { pointer-events: none; }
+
+/* Claude Code panel: always dark, like a terminal. */
+.claude { position: relative; flex: none; width: var(--claude-width, 520px); max-width: calc(100vw - 360px); display: flex; flex-direction: column; background: #030712; border-left: 1px solid var(--line); color: #9ca3af; }
+.claude[hidden] { display: none; }
+.claude .grip { position: absolute; z-index: 1; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; }
+.claude .grip::after { content: ""; position: absolute; left: 3px; top: 50%; height: 36px; margin-top: -18px; width: 2px; border-radius: 2px; background: #374151; opacity: 0; transition: opacity .15s; }
+.claude:hover .grip::after, body.resizing .grip::after { opacity: 1; }
+.claude header { display: flex; align-items: center; gap: 7px; height: 38px; flex: none; padding: 0 8px 0 14px; border-bottom: 1px solid #1f2937; font-size: 13px; white-space: nowrap; }
+.claude header b { color: #f3f4f6; font-weight: 600; }
+.claude .where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.claude header button { font: inherit; color: #6b7280; background: none; border: 0; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.claude header button:hover { color: #f3f4f6; background: #1f2937; }
+.claude .term { flex: 1; min-height: 0; padding: 8px 4px 4px 12px; }
 
 #home { flex: 1; padding: 48px 56px 56px; display: none; overflow: auto; }
 #home.on { display: block; }

@@ -2,7 +2,7 @@
 
 A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on this Mac: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none).
 
-Needs Node and the `backlog` CLI.
+Needs Node and the `backlog` CLI; the Claude Code panel needs the `claude` CLI.
 
 ## Install
 
@@ -19,5 +19,6 @@ Then install the page as an app: in Safari, File › Add to Dock; in Chrome, the
 - The project list is `~/Library/Application Support/Backlogs/projects.json`. On first run it holds every board found in `~/Projects` and `~/Documents` (git worktrees skipped).
 - Each project keeps its config's `default_port`; a port already taken gets the next free one from 6430.
 - Removing a project only takes it off the list.
-- Log: `~/Library/Logs/Backlogs.log`. Run by hand: `node server.js`.
+- Claude Code panel (✻ Claude, or Ctrl+`): `claude.js` runs `claude` in the project folder in a login shell (node-pty) and streams it to the page over a WebSocket (xterm.js). It keeps running while the page is closed, and stops when the project's tab is closed.
+- Log: `~/Library/Logs/Backlogs.log`. Run by hand: `npm install && node server.js`.
 - Icons: `rsvg-convert -w 512 public/icon.svg -o public/icon-512.png` (and 192).

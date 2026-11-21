@@ -10,11 +10,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-512.png">
+<link rel="stylesheet" href="vendor/xterm.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <nav>
 	<div id="tabs"><button data-home title="Accueil"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 7.2 8 2.8l5.5 4.4V13a.5.5 0 0 1-.5.5H9.8V10H6.2v3.5H3a.5.5 0 0 1-.5-.5Z"/></svg>Accueil</button></div>
+	<button id="claude" title="Claude Code dans ce projet (Ctrl+`)" hidden><span class="spark">✻</span>Claude</button>
 	<button id="add" title="Ajouter un projet"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
 </nav>
 <section id="home">
@@ -23,6 +25,9 @@
 	<div id="groups"></div>
 	<button id="new-category">+ Nouvelle catégorie</button>
 </section>
+<script src="vendor/xterm.js"></script>
+<script src="vendor/addon-fit.js"></script>
 <script src="app.js"></script>
+<script src="claude.js"></script>
 </body>
 </html>

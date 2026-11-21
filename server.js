@@ -7,6 +7,7 @@ const path = require('node:path');
 const net = require('node:net');
 const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
+const claude = require('./claude');
 
 const PORT = Number(process.env.BACKLOGS_PORT || 6400);
 const FIRST_FREE_PORT = 6430;
@@ -14,6 +15,13 @@ const HOME = os.homedir();
 const DATA_DIR = path.join(HOME, 'Library/Application Support/Backlogs');
 const LIST = path.join(DATA_DIR, 'projects.json');
 const PUBLIC = path.join(__dirname, 'public');
+const ORIGINS = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
+// Files served from node_modules: the terminal in the page.
+const VENDOR = {
+	'/vendor/xterm.js': '@xterm/xterm/lib/xterm.js',
+	'/vendor/xterm.css': '@xterm/xterm/css/xterm.css',
+	'/vendor/addon-fit.js': '@xterm/addon-fit/lib/addon-fit.js',
+};
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 const boards = new Map(); // port -> child process started here
@@ -177,6 +185,8 @@ async function api(req, res) {
 	const [, , resource, id, action] = req.url.split('/');
 	const list = load();
 	const project = list.find((p) => String(p.port) === id);
+	// Changes only from the app's own page, never from another site open in the browser.
+	if (req.method !== 'GET' && !ORIGINS.includes(req.headers.origin)) return send(res, 403, {});
 	if (resource === 'layout' && req.method === 'PUT') {
 		arrange(await body(req));
 		return send(res, 200, state());
@@ -186,8 +196,17 @@ async function api(req, res) {
 	if (req.method === 'POST' && !id) return send(res, 200, { port: await add(), ...state() });
 	if (!project) return send(res, 404, {});
 	if (req.method === 'POST' && action === 'start') return send(res, 200, { url: await start(project) });
-	if (req.method === 'DELETE') {
+	if (req.method === 'POST' && action === 'terminal') {
+		claude.openInTerminal(project.dir);
+		return send(res, 200, {});
+	}
+	if (req.method === 'DELETE' && action === 'claude') {
+		claude.stop(project.port);
+		return send(res, 200, {});
+	}
+	if (req.method === 'DELETE' && !action) {
 		stop(project.port);
+		claude.stop(project.port);
 		save(list.filter((p) => p !== project));
 		return send(res, 200, state());
 	}
@@ -195,9 +214,10 @@ async function api(req, res) {
 }
 
 function serveFile(req, res) {
-	const name = req.url === '/' ? 'index.html' : path.normalize(req.url.split('?')[0]).replace(/^\/+/, '');
-	const file = path.join(PUBLIC, name);
-	if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+	const url = req.url.split('?')[0];
+	const name = url === '/' ? 'index.html' : path.normalize(url).replace(/^\/+/, '');
+	const file = VENDOR[url] ? require.resolve(VENDOR[url]) : path.join(PUBLIC, name);
+	if (!(VENDOR[url] || file.startsWith(PUBLIC)) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
 		res.writeHead(404);
 		return res.end();
 	}
@@ -205,16 +225,17 @@ function serveFile(req, res) {
 	fs.createReadStream(file).pipe(res);
 }
 
-http
-	.createServer((req, res) => {
-		if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
-		else serveFile(req, res);
-	})
-	.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
+const server = http.createServer((req, res) => {
+	if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
+	else serveFile(req, res);
+});
+claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS);
+server.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
 	process.on(signal, () => {
 		for (const child of boards.values()) child.kill();
+		claude.stopAll();
 		process.exit(0);
 	});
 }

@@ -32,6 +32,12 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 - The open tabs, their order and the shown one are remembered (`localStorage`) and reopened at launch.
 - Back to Home refreshes the list and counts.
 
+## Claude Code
+
+- ✻ Claude in the top bar (shown on a project tab), or Ctrl+`, shows or hides a panel beside the board running `claude` in the project folder (xterm.js, `public/claude.js`). Always dark.
+- Hiding the panel (×) or switching tabs leaves Claude running; closing the project's tab stops it. ↻ restarts it, ↗ Terminal opens the same in Terminal.app.
+- Drag the panel's left edge to resize it; the width and which panels are open are remembered (`localStorage`).
+
 ## Installing as an app
 
 - Safari: File › Add to Dock. Chrome: install icon at the right of the address bar.

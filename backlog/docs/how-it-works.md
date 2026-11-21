@@ -4,7 +4,7 @@ title: "How it works"
 type: specification
 ---
 
-One Node file, `server.js`, no dependencies. Serves `public/` on `127.0.0.1:6400` (`BACKLOGS_PORT` to override).
+`server.js`, plus `claude.js` for the Claude Code terminal (dependencies: `node-pty`, `ws`, `@xterm/xterm`, `@xterm/addon-fit`; `npm install` runs a `postinstall` that makes node-pty's `spawn-helper` executable). Serves `public/` on `127.0.0.1:6400` (`BACKLOGS_PORT` to override).
 
 ## Running
 
@@ -12,9 +12,9 @@ One Node file, `server.js`, no dependencies. Serves `public/` on `127.0.0.1:6400
 | --- | --- |
 | At every login | `./install.sh`: launchd agent `local.backlogs` (`~/Library/LaunchAgents/local.backlogs.plist`, `RunAtLoad`, `KeepAlive`), then opens http://localhost:6400 |
 | Remove the agent | `./install.sh --uninstall` |
-| By hand | `node server.js` |
+| By hand | `npm install && node server.js` |
 
-- The agent's `PATH` holds the `backlog` CLI's folder; Node from fnm's default alias when present.
+- `install.sh` runs `npm install` with the agent's Node. The agent's `PATH` holds the `backlog` CLI's folder; Node from fnm's default alias when present.
 - Log: `~/Library/Logs/Backlogs.log`.
 
 ## Project list
@@ -51,9 +51,20 @@ Read from `backlog/tasks/*.md` `status:` lines: `Done`, `In Progress`, anything 
 
 | Request | Does |
 | --- | --- |
-| `GET /api/projects` | List with name, place (`~`-relative), counts |
-| `POST /api/projects` | Folder dialog, add; returns `{ port, projects }` |
+| `GET /api/projects` | `{ categories, projects }`, projects with name, place (`~`-relative), counts |
+| `POST /api/projects` | Folder dialog, add; returns `{ port, categories, projects }` |
+| `PUT /api/layout` | `{ categories, order: [{ port, category }] }`: saves categories and order |
 | `POST /api/projects/<port>/start` | Starts the board; returns `{ url }` |
-| `DELETE /api/projects/<port>` | Removes from the list |
+| `POST /api/projects/<port>/terminal` | Opens Terminal.app in the folder, running `claude` |
+| `DELETE /api/projects/<port>/claude` | Stops the project's Claude Code |
+| `DELETE /api/projects/<port>` | Removes from the list (and stops its Claude Code) |
+| `WS /claude/<port>?cols=&rows=` | The project's Claude Code terminal (below) |
 
-Other paths serve files from `public/` (no-cache, nothing outside the folder).
+- Anything but a GET, and the WebSocket, must come from the app's own origin (`http://localhost:6400`): another site open in the browser can't change the list or reach a shell.
+- Other paths serve files from `public/`, and `/vendor/*` the xterm files from `node_modules` (no-cache, nothing else).
+
+## Claude Code
+
+- One terminal per project, started on the first connection: the user's login shell (`$SHELL -ilc 'claude; exec $SHELL -il'`) in the project folder, so PATH and the rest come from the profile; the shell stays if `claude` exits.
+- Messages from the page: `{ type: 'input', data }`, `{ type: 'resize', cols, rows }`; the server sends raw output.
+- The last 256 KB of output are kept and replayed when the page reconnects (reload, app relaunch). Stopped by closing the project's tab, ↻, or the server stopping.

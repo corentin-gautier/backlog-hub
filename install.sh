@@ -11,6 +11,8 @@ if [[ $1 == --uninstall ]]; then rm -f $plist; echo "Removed."; exit; fi
 node=$(command -v node)
 [[ -x ~/.local/share/fnm/aliases/default/bin/node ]] && node=~/.local/share/fnm/aliases/default/bin/node
 backlog_dir=$(command -v backlog)
+# Dependencies (the Claude Code terminal), installed with the same Node as the server runs.
+(cd $here && PATH=${node:h}:$PATH npm install --omit=dev --no-fund --no-audit --silent)
 cat > $plist <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
