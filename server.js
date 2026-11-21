@@ -266,7 +266,14 @@ function serveFile(req, res) {
 const BOOT = String(Date.now());
 const listeners = new Set();
 let pending, changed;
+const stamps = new Map(); // file -> last modification time seen
+for (const file of fs.readdirSync(PUBLIC, { recursive: true })) stamps.set(file, fs.statSync(path.join(PUBLIC, file)).mtimeMs);
 fs.watch(PUBLIC, { recursive: true }, (event, file) => {
+	// Only code and styles, and only real edits: opening a file (an image from the chat) touches its metadata.
+	if (!/\.(js|html|css)$/.test(file || '')) return;
+	const time = fs.statSync(path.join(PUBLIC, file), { throwIfNoEntry: false })?.mtimeMs;
+	if (time === stamps.get(file)) return;
+	stamps.set(file, time);
 	// Changes come in bursts: send one message, a script or page winning over a stylesheet.
 	if (!changed?.match(/\.(js|html)$/)) changed = file;
 	clearTimeout(pending);
