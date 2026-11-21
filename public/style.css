@@ -1,0 +1,28 @@
+:root { --bg: #f6f5f2; --bar: #fff; --text: #222; --muted: #777; --line: #ddd; --accent: #2f6fde; }
+@media (prefers-color-scheme: dark) { :root { --bg: #18181a; --bar: #222225; --text: #eee; --muted: #999; --line: #333; --accent: #6f9cff; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px -apple-system, system-ui, sans-serif; }
+body { display: flex; flex-direction: column; }
+
+nav { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bar); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+nav button { -webkit-app-region: no-drag; font: inherit; color: var(--muted); background: none; border: 0; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+nav button:hover { color: var(--text); }
+nav button.on { color: var(--text); background: var(--bg); font-weight: 600; }
+#tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+#add { font-size: 18px; line-height: 1; padding: 4px 10px; }
+
+iframe { flex: 1; width: 100%; border: 0; display: none; background: var(--bg); }
+iframe.on { display: block; }
+
+#home { flex: 1; padding: 32px; display: none; overflow: auto; }
+#home.on { display: block; }
+#home h1 { font-size: 20px; margin: 0 0 20px; }
+#cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--bar); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.card:hover { border-color: var(--accent); }
+.card b { font-size: 16px; }
+.card span { color: var(--muted); }
+.card .remove { position: absolute; top: 8px; right: 8px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; visibility: hidden; }
+.card:hover .remove { visibility: visible; }
+.card .remove:hover { color: var(--text); background: var(--bg); }
+.card.new { align-items: center; justify-content: center; border-style: dashed; color: var(--muted); min-height: 96px; }
