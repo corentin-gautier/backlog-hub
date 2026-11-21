@@ -6,24 +6,52 @@ let current = '';
 const $ = (selector) => document.querySelector(selector);
 const api = (url, method = 'GET') => fetch(`/api/${url}`, { method }).then((res) => res.json());
 
-function remember(port) {
-	try { localStorage.setItem('tab', port); } catch (e) {}
+// Stored per browser: the open tabs and the one shown.
+function stored(key, fallback) {
+	try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
 }
 
-function lastTab() {
-	try { return localStorage.getItem('tab') || ''; } catch (e) { return ''; }
+function store(key, value) {
+	try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
 }
+
+let open = stored('open', []);
 
 function render() {
-	$('#tabs').replaceChildren($('#tabs [data-home]'), ...projects.map((p) => {
-		const tab = document.createElement('button');
-		tab.textContent = p.name;
-		tab.dataset.port = p.port;
-		tab.onclick = () => show(String(p.port));
-		return tab;
-	}));
+	open = open.filter((port) => projects.some((p) => String(p.port) === port));
+	store('open', open);
+	$('#tabs').replaceChildren($('#tabs [data-home]'), ...open.map((port) => tab(projects.find((p) => String(p.port) === port))));
 	$('#cards').replaceChildren(...projects.map(card), newCard());
 	highlight();
+}
+
+function tab(p) {
+	const el = document.createElement('button');
+	el.dataset.port = p.port;
+	el.onclick = () => show(String(p.port));
+	const dot = document.createElement('span');
+	dot.className = 'dot';
+	dot.textContent = p.name[0].toUpperCase();
+	dot.style.background = colour(p.name);
+	const close = document.createElement('span');
+	close.className = 'close';
+	close.title = 'Fermer';
+	close.textContent = '×';
+	close.onclick = (event) => {
+		event.stopPropagation();
+		closeTab(String(p.port));
+	};
+	el.append(dot, p.name, close);
+	return el;
+}
+
+function closeTab(port) {
+	const index = open.indexOf(port);
+	open.splice(index, 1);
+	frames[port]?.remove();
+	delete frames[port];
+	if (current === port) show(open[Math.min(index, open.length - 1)] || '');
+	render();
 }
 
 // A colour per project, picked from its name so it stays the same.
@@ -51,8 +79,7 @@ function card(p) {
 	el.querySelector('.remove').onclick = async (event) => {
 		event.stopPropagation();
 		if (!confirm(`Retirer « ${p.name} » de la liste ? Le dossier et ses tâches restent.`)) return;
-		frames[p.port]?.remove();
-		delete frames[p.port];
+		if (open.includes(String(p.port))) closeTab(String(p.port));
 		projects = await api(`projects/${p.port}`, 'DELETE');
 		render();
 	};
@@ -75,7 +102,11 @@ function highlight() {
 
 async function show(port) {
 	current = port;
-	remember(port);
+	store('tab', port);
+	if (port && !open.includes(port)) {
+		open.push(port);
+		render();
+	}
 	highlight();
 	if (!port) return refresh();
 	if (!frames[port]) {
@@ -105,6 +136,6 @@ $('#today').textContent = today;
 $('#tabs [data-home]').onclick = () => show('');
 $('#add').onclick = add;
 
-refresh().then(() => show(projects.some((p) => String(p.port) === lastTab()) ? lastTab() : ''));
+refresh().then(() => show(open.includes(stored('tab', '')) ? stored('tab', '') : ''));
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

@@ -110,7 +110,8 @@ function stop(port) {
 
 // macOS folder dialog; resolves to a path, or null when cancelled.
 function pickFolder() {
-	const script = 'tell me to activate\nPOSIX path of (choose folder with prompt "Dossier du projet (un tableau y sera créé s\'il n\'en a pas)")';
+	// Shown by System Events, already running: `tell me to activate` takes osascript ~2 s to become an app.
+	const script = 'tell application "System Events"\nactivate\nPOSIX path of (choose folder with prompt "Dossier du projet (un tableau y sera créé s\'il n\'en a pas)")\nend tell';
 	return new Promise((resolve) => execFile('osascript', ['-e', script], (error, out) => resolve(error ? null : out.trim().replace(/\/$/, ''))));
 }
 
