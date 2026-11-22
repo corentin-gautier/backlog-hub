@@ -76,14 +76,16 @@ function createWindow() {
 	win.on('enter-full-screen', () => fullScreen(true));
 	win.on('leave-full-screen', () => fullScreen(false));
 
-	// Links outside localhost open in the default browser; the page itself never navigates away.
+	// Links outside localhost open in the default browser; the page and its boards never navigate away.
 	const local = (url) => /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)|about:|data:|blob:)/.test(url);
 	win.webContents.setWindowOpenHandler(({ url }) => {
-		if (local(url)) win.loadURL(url);
+		// The hub's own pages load in the window; anything else, a board or a local dev server included, in the browser.
+		if (new URL(url).port === String(PORT) && local(url)) win.loadURL(url);
 		else shell.openExternal(url);
 		return { action: 'deny' };
 	});
-	win.webContents.on('will-navigate', (event, url) => !local(url) && (event.preventDefault(), shell.openExternal(url)));
+	// The window's page and its boards' iframes alike.
+	win.webContents.on('will-frame-navigate', (event) => !local(event.url) && (event.preventDefault(), shell.openExternal(event.url)));
 
 	const keep = () => !win.isFullScreen() && !win.isMinimized() && ((settings.bounds = win.getNormalBounds()), save());
 	win.on('resized', keep);

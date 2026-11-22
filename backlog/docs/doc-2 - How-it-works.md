@@ -26,7 +26,7 @@ Electron, macOS and Windows: `electron/main.js` runs `server.js` in the app's No
 - Shipped tools (`resources/bin`): the `backlog` CLI of each platform (npm `backlog.md-<os>-<arch>`, used only when none is on the PATH) and, on macOS, the vault binary. The Agent SDK's own Claude Code binary (~350 MB) is left out: the app uses the user's `claude`. A Mac app gets the login shell's PATH.
 - No title bar: the tab bar is the window's (`-webkit-app-region`). macOS: window buttons on its left (`trafficLightPosition`), Windows: drawn over its right (`titleBarOverlay`, coloured from the page's `theme-color`). `electron/preload.js` adds `app-darwin` / `app-win32` to `<html>` for `style.css`.
 - Closing the window hides it (Dock icon, or the tray on Windows, brings it back). Opens at login from the first run in Applications (menu: Open at Login). Size and place remembered (`settings.json` in the app's data folder).
-- Links outside localhost open in the default browser.
+- Links outside the hub's own pages open in the default browser, from the page or a board (`will-frame-navigate`, and `window.open` of another port, a local dev server say).
 - Encrypted docs: macOS only (`vault.js` reports them unavailable elsewhere).
 - Build: `scripts/release.sh` (header lists the modes): icons, tools, `electron-builder` (config in `package.json`), notarization with the `backlog-hub` notarytool keychain profile. Output in `dist/`.
 
