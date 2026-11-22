@@ -89,3 +89,7 @@ Read from `backlog/tasks/*.md` `status:` lines: `Done`, `In Progress`, anything 
 - Server → page: `reset` (all events + state, on connection), then `user`, `text`, `delta` (streamed text), `tool`, `result`, `ask` / `answered` (permission prompts and AskUserQuestion, through `canUseTool`), `busy`, `info { model, mode }`, `commands { list }`, `error`.
 - Slash commands: `supportedCommands()` of the running conversation (again on `commands_changed`), else of a short-lived query started on connection that sends nothing (~0.3 s); cached per folder, sent in `reset` and as `commands`. A command in a transcript (`<command-name>`) shows as the user's `/name args`.
 - Keeps running while the page is closed; stopped by closing the project's tab or the server stopping (the conversation is kept).
+
+## Site
+
+The promo page lives in `site/` (static, no build). `scripts/publish-site.sh` publishes it to the root of the `gh-pages` branch, served by GitHub Pages at https://corentin-gautier.github.io/backlog-hub/ (redirects to https://corentingautier.dev/backlog-hub/, the account's custom domain).
