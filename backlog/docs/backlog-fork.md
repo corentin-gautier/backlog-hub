@@ -13,7 +13,7 @@ Backlog.md is a compiled binary, so what Backlog Hub changes in the boards lives
 - The Markdown button opens the former editor: source, title and path, with Save and Cancel.
 - The Markdown written back keeps the file's style: `-` lists, `---` under table headers, unpadded tables, bare links. The server itself drops the blank line after the front matter (as before).
 - A file changed elsewhere (Claude, git) while open reloads in the editor, unless an edit is waiting to be saved.
-- Doc and decision headers (`RecordHeader.tsx`): title and quiet buttons on one line (Archive red on hover only), the id (unless the file name starts with it), path and date on a small line below, aligned with the content's edges.
+- Doc and decision headers (`RecordHeader.tsx`): title and quiet buttons on one line (Archive red on hover only), the id, the path (without the id starting the file name) and the date on a small line below, aligned with the content's edges.
 - Inside Backlog Hub: a link to another site (task, doc, anywhere on the board) opens in a new tab, the default browser in the desktop app, instead of replacing the board (`lib/hub-links.ts`).
 - Inside Backlog Hub: encryption controls on the doc page and padlocks in the sidebar ([Encrypted docs](/documentation/5/encrypted-docs)).
 
