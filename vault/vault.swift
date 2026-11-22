@@ -45,8 +45,11 @@ func split(_ text: String) -> (String, String) {
 }
 
 func payload(_ body: String) -> Data? {
-	guard let start = body.range(of: marker), let end = body.range(of: " -->", range: start.upperBound..<body.endIndex) else { return nil }
-	return Data(base64Encoded: String(body[start.upperBound..<end.lowerBound]))
+	// The marker alone on its line: a doc that only quotes it (this format's own doc) holds no payload.
+	for line in body.split(separator: "\n") where line.hasPrefix(marker) && line.hasSuffix(" -->") {
+		if let data = Data(base64Encoded: String(line.dropFirst(marker.count).dropLast(4))), data.count > 65 { return data }
+	}
+	return nil
 }
 
 func lock(_ path: String, _ recipient: P256.KeyAgreement.PublicKey) throws {

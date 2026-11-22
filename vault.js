@@ -9,14 +9,15 @@ const { execFile, execFileSync } = require('node:child_process');
 // Built from vault/vault.swift on first use from a source checkout; shipped prebuilt in the desktop app (VAULT_BIN).
 const BIN = process.env.VAULT_BIN || path.join(__dirname, 'vault/backlogs-vault');
 const AVAILABLE = process.platform === 'darwin';
-const MARKER = '<!-- backlogs-vault v1 ';
 const RELOCK_MS = 5 * 60 * 1000;
 let LIST;
 const timers = new Map(); // project dir -> { timer, until }
 
 const marked = () => (fs.existsSync(LIST) ? JSON.parse(fs.readFileSync(LIST, 'utf8')).files : []);
 const saveMarked = (files) => fs.writeFileSync(LIST, JSON.stringify({ files: [...new Set(files)].sort() }, null, '\t') + '\n');
-const isLocked = (file) => fs.readFileSync(file, 'utf8').includes(MARKER);
+// The marker alone on its line with a base64 payload: a doc that only quotes the marker (this format's own doc) is not locked.
+const LOCKED = /^<!-- backlogs-vault v1 [A-Za-z0-9+/]{40,}={0,2} -->$/m;
+const isLocked = (file) => LOCKED.test(fs.readFileSync(file, 'utf8'));
 const docsDir = (project) => path.join(project.dir, 'backlog/docs');
 const ofProject = (project) => marked().filter((f) => f.startsWith(docsDir(project) + path.sep) && fs.existsSync(f));
 const run = (args) => new Promise((resolve, reject) => execFile(BIN, args, (error, out, err) => (error ? reject(new Error(err.trim() || error.message)) : resolve())));

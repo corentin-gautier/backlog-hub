@@ -23,7 +23,7 @@ A doc marked as encrypted keeps its body encrypted on disk; Touch ID unlocks it.
 ## Server (`vault.js`, `vault/vault.swift`)
 
 - Marked files: `~/Library/Application Support/Backlogs/vault.json`; the Secure Enclave key: `…/Backlogs/vault/`. Never rename that folder: the docs could not be decrypted.
-- On disk: front matter, a notice, then `<!-- backlogs-vault v1 BASE64 -->`.
+- On disk: front matter, a notice, then `<!-- backlogs-vault v1 BASE64 -->`. A doc is locked when that marker stands alone on its line with a base64 payload, so a doc that only quotes it (this one) stays readable (`vault.js`, `vault.swift`, the fork's `hub-vault.ts`).
 - Unlock decrypts every marked doc of the project (one Touch ID); they lock again after 5 minutes, when the project's tab closes, and when the server starts or stops.
 - Marking a doc while the project is unlocked leaves it readable until the common relock; otherwise it is encrypted at once.
 - `swiftc` builds `vault/backlogs-vault` on first start; delete it to rebuild after a change to `vault.swift`.
