@@ -279,6 +279,7 @@ function closeTab(port) {
 	const index = open.indexOf(port);
 	open.splice(index, 1);
 	Claude.stop(port);
+	Vault.lock(port);
 	frames[port]?.remove();
 	delete frames[port];
 	if (current === port) show(open[Math.min(index, open.length - 1)] || '');
@@ -338,6 +339,7 @@ function highlight() {
 	Object.entries(frames).forEach(([port, pane]) => pane.classList.toggle('on', port === current));
 	$('#claude').hidden = !current;
 	$('#code').hidden = !current;
+	$('#vault').hidden = !current;
 	$('#claude').classList.toggle('on', Claude.visible(current));
 }
 
@@ -351,6 +353,7 @@ async function show(port, page) {
 	}
 	highlight();
 	if (!port) return refresh();
+	Vault.show();
 	if (!frames[port]) {
 		const pane = document.createElement('div');
 		const frame = document.createElement('iframe');

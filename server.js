@@ -8,6 +8,7 @@ const net = require('node:net');
 const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
 const claude = require('./claude');
+const vault = require('./vault');
 
 const PORT = Number(process.env.BACKLOGS_PORT || 6400);
 const FIRST_FREE_PORT = 6430;
@@ -323,6 +324,8 @@ async function api(req, res) {
 	}
 	if (req.method === 'GET' && action === 'image') return serveImage(project, url.searchParams.get('path'), res);
 	if (req.method === 'POST' && action === 'open') return send(res, 200, { ok: openLocal(project, (await body(req)).path) });
+	if (req.method === 'GET' && action === 'vault') return send(res, 200, vault.status(project));
+	if (req.method === 'POST' && action === 'vault') return send(res, 200, await vault.act(project, await body(req)));
 	if (req.method === 'GET' && action === 'sessions') return send(res, 200, await claude.sessions(project));
 	if (req.method === 'DELETE' && action === 'claude') {
 		claude.stop(project.port);
@@ -383,6 +386,7 @@ const server = http.createServer((req, res) => {
 	else if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
 	else serveFile(req, res);
 });
+vault.init(DATA_DIR);
 claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS, DATA_DIR);
 server.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
 
@@ -390,6 +394,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 	process.on(signal, () => {
 		for (const child of boards.values()) child.kill();
 		claude.stopAll();
+		vault.lockAllSync();
 		process.exit(0);
 	});
 }
