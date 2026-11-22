@@ -46,7 +46,7 @@ function group(name, list) {
 	el.className = 'group';
 	el.dataset.cat = name;
 	el.innerHTML = `<h2><span class="cat"></span><span class="count"></span></h2><div class="cards"></div>`;
-	el.querySelector('.cat').textContent = name || 'Sans catégorie';
+	el.querySelector('.cat').textContent = name || 'Uncategorized';
 	el.querySelector('.count').textContent = list.length;
 	el.querySelector('.cards').append(...list.map(card));
 	if (!name) {
@@ -56,10 +56,10 @@ function group(name, list) {
 	}
 	const head = el.querySelector('h2');
 	draggable(head, 'group');
-	head.title = 'Glisser pour déplacer la catégorie';
+	head.title = 'Drag to move the category';
 	const actions = document.createElement('span');
 	actions.className = 'acts';
-	actions.innerHTML = '<button>Renommer</button><button>Supprimer</button>';
+	actions.innerHTML = '<button>Rename</button><button>Delete</button>';
 	actions.children[0].onclick = () => rename(el);
 	actions.children[1].onclick = () => {
 		categories = categories.filter((c) => c !== name);
@@ -93,8 +93,8 @@ function rename(el, fresh) {
 }
 
 function newCategory() {
-	let name = 'Nouvelle catégorie';
-	for (let i = 2; categories.includes(name); i++) name = `Nouvelle catégorie ${i}`;
+	let name = 'New category';
+	for (let i = 2; categories.includes(name); i++) name = `New category ${i}`;
 	categories.push(name);
 	render();
 	rename($(`.group[data-cat="${CSS.escape(name)}"]`), true);
@@ -191,7 +191,7 @@ function tab(p) {
 	dot.style.background = colour(p.name);
 	const close = document.createElement('span');
 	close.className = 'close';
-	close.title = 'Fermer';
+	close.title = 'Close';
 	close.textContent = '×';
 	close.onclick = (event) => {
 		event.stopPropagation();
@@ -205,11 +205,12 @@ function tab(p) {
 	return el;
 }
 
-// ---- "À ne pas oublier": open tasks with a due date, every project ----
+// ---- "Coming up": open tasks with a due date, every project ----
 
 const SHOWN = 5;
 let allAlerts = false;
-const EVERY = { mensuel: 'chaque mois', trimestriel: 'chaque trimestre', annuel: 'chaque année' };
+// Recurrence labels (the French ones still work).
+const EVERY = { monthly: 'monthly', quarterly: 'quarterly', yearly: 'yearly', mensuel: 'monthly', trimestriel: 'quarterly', annuel: 'yearly' };
 
 function daysUntil(date) {
 	const [y, m, d] = date.split('-').map(Number);
@@ -218,12 +219,12 @@ function daysUntil(date) {
 }
 
 function when(days) {
-	if (days === 0) return "aujourd'hui";
-	if (days === 1) return 'demain';
-	if (days === -1) return 'hier';
-	if (days < 0) return `en retard de ${-days} jours`;
-	if (days < 60) return `dans ${days} jours`;
-	return `dans ${Math.round(days / 30.4)} mois`;
+	if (days === 0) return 'today';
+	if (days === 1) return 'tomorrow';
+	if (days === -1) return 'yesterday';
+	if (days < 0) return `${-days} days late`;
+	if (days < 60) return `in ${days} days`;
+	return `in ${Math.round(days / 30.4)} months`;
 }
 
 function renderAlerts() {
@@ -231,7 +232,7 @@ function renderAlerts() {
 	box.replaceChildren();
 	if (!alerts.length) return;
 	const head = document.createElement('h2');
-	head.innerHTML = 'À ne pas oublier <span class="count"></span>';
+	head.innerHTML = 'Coming up <span class="count"></span>';
 	head.querySelector('.count').textContent = alerts.length;
 	const list = document.createElement('div');
 	list.className = 'alerts';
@@ -240,7 +241,7 @@ function renderAlerts() {
 		const more = document.createElement('button');
 		more.className = 'more';
 		const rest = alerts.length - SHOWN;
-		more.textContent = allAlerts ? 'Voir moins' : rest > 1 ? `Voir les ${rest} suivantes` : 'Voir la suivante';
+		more.textContent = allAlerts ? 'Show less' : `Show ${rest} more`;
 		more.onclick = () => {
 			allAlerts = !allAlerts;
 			renderAlerts();
@@ -257,8 +258,8 @@ function alertRow(a) {
 	el.className = 'alert' + (days < 0 ? ' late' : days <= 7 ? ' soon' : '');
 	el.innerHTML = `<div class="date"><b></b><span></span></div><div class="what"><div class="title"></div><div class="sub"><i class="dot"></i></div></div><div class="when"></div>`;
 	el.querySelector('.date b').textContent = date.getDate();
-	el.querySelector('.date span').textContent = date.toLocaleDateString('fr-FR', { month: 'short' });
-	el.querySelector('.date').title = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+	el.querySelector('.date span').textContent = date.toLocaleDateString(undefined, { month: 'short' });
+	el.querySelector('.date').title = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 	el.querySelector('.title').textContent = a.title;
 	if (a.every) {
 		const tag = document.createElement('span');
@@ -302,9 +303,9 @@ function card(p) {
 	el.innerHTML = `
 		<div class="top"><div class="avatar"></div><div style="min-width:0"><div class="name"></div><div class="place"></div></div></div>
 		<div class="progress"><i style="width:${(p.done / total) * 100}%;background:var(--done)"></i><i style="width:${(p.doing / total) * 100}%;background:var(--doing)"></i></div>
-		<div class="stats"><span><b>${p.done}</b> faites</span><span><b>${p.doing}</b> en cours</span><span><b>${p.todo}</b> à faire</span></div>
-		<button class="code" title="Ouvrir dans VS Code"><svg viewBox="0 0 16 16"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg></button>
-		<button class="remove" title="Retirer de la liste (le dossier reste)">×</button>`;
+		<div class="stats"><span><b>${p.done}</b> done</span><span><b>${p.doing}</b> in progress</span><span><b>${p.todo}</b> to do</span></div>
+		<button class="code" title="Open in VS Code"><svg viewBox="0 0 16 16"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg></button>
+		<button class="remove" title="Remove from the list (the folder stays)">×</button>`;
 	el.querySelector('.avatar').textContent = p.name[0].toUpperCase();
 	el.querySelector('.avatar').style.background = colour(p.name);
 	el.querySelector('.name').textContent = p.name;
@@ -316,7 +317,7 @@ function card(p) {
 	};
 	el.querySelector('.remove').onclick = async (event) => {
 		event.stopPropagation();
-		if (!confirm(`Retirer « ${p.name} » de la liste ? Le dossier et ses tâches restent.`)) return;
+		if (!confirm(`Remove “${p.name}” from the list? The folder and its tasks stay.`)) return;
 		if (open.includes(String(p.port))) closeTab(String(p.port));
 		take(await api(`projects/${p.port}`, 'DELETE'));
 		render();
@@ -328,7 +329,7 @@ function card(p) {
 function newCard() {
 	const el = document.createElement('button');
 	el.className = 'card new';
-	el.textContent = '+ Ajouter un projet';
+	el.textContent = '+ Add a project';
 	el.onclick = add;
 	return el;
 }
@@ -382,7 +383,7 @@ async function add() {
 	if (result.port) show(String(result.port));
 }
 
-const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 $('#today').textContent = today;
 
 $('#tabs [data-home]').onclick = () => show('');

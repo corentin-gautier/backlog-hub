@@ -1,7 +1,7 @@
 {
 	"name": "Backlogs",
 	"short_name": "Backlogs",
-	"description": "Tous mes tableaux Backlog.md",
+	"description": "Every Backlog.md board on this Mac",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",

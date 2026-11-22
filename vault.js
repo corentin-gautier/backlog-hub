@@ -43,7 +43,7 @@ async function lock(project) {
 }
 
 async function unlock(project, files = ofProject(project).filter(isLocked)) {
-	if (files.length) await run(['unlock', `déverrouiller les documents chiffrés de ${path.basename(project.dir)}`, ...files]);
+	if (files.length) await run(['unlock', `unlock the encrypted docs of ${path.basename(project.dir)}`, ...files]);
 	clearTimeout(timers.get(project.dir)?.timer);
 	const timer = setTimeout(() => lock(project).catch(console.error), RELOCK_MS);
 	timers.set(project.dir, { timer, until: Date.now() + RELOCK_MS });

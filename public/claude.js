@@ -4,8 +4,8 @@
 const Claude = (() => {
 	const panels = {}; // port -> { el, log, socket, tools, draft, busy, mode }
 	const shown = new Set(stored('claude', [])); // ports whose panel is open
-	const MODES = { default: 'Demander avant d’agir', acceptEdits: 'Accepter les modifications', plan: 'Plan', auto: 'Auto' };
-	const SHORT = { default: 'Demander', acceptEdits: 'Modifier', plan: 'Plan', auto: 'Auto' };
+	const MODES = { default: 'Ask before acting', acceptEdits: 'Accept edits', plan: 'Plan', auto: 'Auto' };
+	const SHORT = { default: 'Ask', acceptEdits: 'Edit', plan: 'Plan', auto: 'Auto' };
 	const icon = (d) => `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}"/></svg>`;
 	const ICONS = {
 		default: icon('M8 2.2 12.8 4v3.6c0 2.9-2 5-4.8 6.2C5.2 12.6 3.2 10.5 3.2 7.6V4Z'),
@@ -16,7 +16,7 @@ const Claude = (() => {
 		stop: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5"/></svg>',
 	};
 	const ORDER = ['default', 'acceptEdits', 'plan', 'auto'];
-	const HINTS = { default: 'Claude demande avant chaque modification ou commande', acceptEdits: 'Modifie les fichiers sans demander', plan: 'Explore et propose un plan, sans rien modifier', auto: 'Agit seul, demande seulement pour les actions risquées' };
+	const HINTS = { default: 'Claude asks before each edit or command', acceptEdits: 'Edits files without asking', plan: 'Explores and proposes a plan, changes nothing', auto: 'Acts alone, asks only for risky actions' };
 
 	const setWidth = (px) => document.body.style.setProperty('--claude-width', `${px}px`);
 	setWidth(stored('claudeWidth', 460));
@@ -141,7 +141,7 @@ const Claude = (() => {
 		if (name === 'AskUserQuestion') {
 			const answers = {};
 			const questions = input.questions || [];
-			const submit = h('button', 'btn primary', 'Répondre');
+			const submit = h('button', 'btn primary', 'Answer');
 			const ready = () => (submit.disabled = questions.some((q) => !answers[q.question]));
 			for (const q of questions) {
 				card.append(h('div', 'q', q.question));
@@ -162,20 +162,20 @@ const Claude = (() => {
 			}
 			const row = h('div', 'row');
 			if (questions.length > 1 || questions.some((q) => q.multiSelect)) row.append(submit);
-			const other = h('button', 'btn', 'Ignorer');
+			const other = h('button', 'btn', 'Skip');
 			other.onclick = () => answer('deny');
 			row.append(other);
 			card.append(row);
 			ready();
 			submit.onclick = () => answer('allow', answers);
 		} else {
-			card.append(h('div', 'q', title || `Claude veut utiliser ${name}`));
+			card.append(h('div', 'q', title || `Claude wants to use ${name}`));
 			const detail = input.command || input.file_path || input.url;
 			if (detail) card.append(h('pre', '', detail));
 			if (name === 'Edit' || name === 'Write') card.append(diff(input));
 			if (name === 'ExitPlanMode' && input.plan) card.querySelector('.q').insertAdjacentHTML('afterend', `<div class="md">${markdown(input.plan, panel.port)}</div>`);
 			const row = h('div', 'row');
-			for (const [choice, text] of [['allow', 'Autoriser'], ['always', 'Toujours autoriser'], ['deny', 'Refuser']]) {
+			for (const [choice, text] of [['allow', 'Allow'], ['always', 'Always allow'], ['deny', 'Deny']]) {
 				const button = h('button', choice === 'allow' ? 'btn primary' : 'btn', text);
 				button.onclick = () => answer(choice);
 				row.append(button);
@@ -212,7 +212,7 @@ const Claude = (() => {
 		panel.sendButton.classList.toggle('stop', stop);
 		panel.sendButton.innerHTML = stop ? ICONS.stop : ICONS.send;
 		panel.sendButton.classList.toggle('idle', !stop && !panel.input.value.trim());
-		panel.sendButton.title = stop ? 'Arrêter (Esc)' : 'Envoyer (↵)';
+		panel.sendButton.title = stop ? 'Stop (Esc)' : 'Send (↵)';
 	}
 
 	function info(panel, { model, choice, mode, models }) {
@@ -221,7 +221,7 @@ const Claude = (() => {
 		if (models?.length) panel.models = models;
 		const chosen = choice && panel.models.find((m) => m.value === choice);
 		panel.modelChip.innerHTML = '<span></span><i class="caret"></i>';
-		panel.modelChip.firstChild.textContent = chosen?.name || modelName(model) || 'Modèle';
+		panel.modelChip.firstChild.textContent = chosen?.name || modelName(model) || 'Model';
 		panel.modelChip.hidden = !model && !panel.models.length;
 		panel.modeChip.dataset.mode = mode;
 		panel.modeChip.innerHTML = `${ICONS[mode] || ''}<span></span><i class="caret"></i>`;
@@ -291,7 +291,7 @@ const Claude = (() => {
 				panel.draft = null;
 				const answered = new Set(event.events.filter((e) => e.type === 'answered').map((e) => e.id));
 				for (const e of event.events) if (!(e.type === 'ask' && answered.has(e.id)) && e.type !== 'answered') render(panel, e);
-				if (!event.events.length) panel.log.prepend(h('div', 'empty', panel.port === 'home' ? 'Une question, une idée, une tâche hors projet ? Demande à Claude.' : `Claude Code dans ${panel.place}. Demande-lui ce que tu veux.`));
+				if (!event.events.length) panel.log.prepend(h('div', 'empty', panel.port === 'home' ? 'A question, an idea, a task outside any project? Ask Claude.' : `Claude Code in ${panel.place}. Ask it anything.`));
 				setBusy(panel, event.busy);
 				if (event.draft) setDraft(panel, event.draft);
 				info(panel, event);
@@ -305,8 +305,8 @@ const Claude = (() => {
 
 	// Handled by the page: a new conversation and the history.
 	const LOCAL = {
-		clear: { description: 'Nouvelle conversation', run: (panel) => send(panel, { type: 'open' }) },
-		resume: { description: 'Reprendre une conversation précédente', run: (panel) => history(panel) },
+		clear: { description: 'New conversation', run: (panel) => send(panel, { type: 'open' }) },
+		resume: { description: 'Resume an earlier conversation', run: (panel) => history(panel) },
 	};
 
 	function setCommands(panel, list) {
@@ -376,21 +376,21 @@ const Claude = (() => {
 
 	// A panel beside a board, or the home's general chat (port 'home') in the given box.
 	function create(port, box) {
-		const project = box ? { dir: '', place: 'Général' } : projects.find((p) => String(p.port) === port);
+		const project = box ? { dir: '', place: 'General' } : projects.find((p) => String(p.port) === port);
 		const el = document.createElement('aside');
 		el.className = box ? 'claude general' : 'claude';
 		el.innerHTML = `
-			<div class="grip" title="Glisser pour élargir"></div>
+			<div class="grip" title="Drag to resize"></div>
 			<header><span class="spark">✻</span><b>Claude</b><span class="where"></span>
-				<button data-act="history" title="Conversations précédentes"><svg viewBox="0 0 16 16"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.8v2.4h2.4M8 5v3.2l2.2 1.4"/></svg></button>
-				<button data-act="new" title="Nouvelle conversation"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
-				<button data-act="terminal" title="Ouvrir cette conversation dans Terminal">↗</button>
-				<button data-act="hide" title="Masquer (Ctrl+\`), Claude continue">×</button></header>
+				<button data-act="history" title="Earlier conversations"><svg viewBox="0 0 16 16"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.8v2.4h2.4M8 5v3.2l2.2 1.4"/></svg></button>
+				<button data-act="new" title="New conversation"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
+				<button data-act="terminal" title="Open this conversation in Terminal">↗</button>
+				<button data-act="hide" title="Hide (Ctrl+\`), Claude keeps going">×</button></header>
 			<div class="history" hidden></div>
-			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude travaille…</span></div></div>
+			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude is working…</span></div></div>
 			<form class="composer">
 				<div class="slash" hidden></div>
-				<textarea rows="1" placeholder="Écris à Claude… (/ commandes, ↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
+				<textarea rows="1" placeholder="Message Claude… (/ commands, ↵ send, ⇧↵ new line)"></textarea>
 				<div class="bar"><button type="button" class="chip mode"></button><button type="button" class="chip model" hidden></button><button class="send idle"></button></div>
 			</form>`;
 		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
@@ -457,10 +457,10 @@ const Claude = (() => {
 		box.replaceChildren(h('div', 'none', '…'));
 		box.hidden = false;
 		const list = await api(`projects/${panel.port}/sessions`);
-		box.replaceChildren(...(list.length ? [] : [h('div', 'none', 'Aucune conversation.')]));
+		box.replaceChildren(...(list.length ? [] : [h('div', 'none', 'No conversations.')]));
 		for (const s of list) {
 			const item = h('button', 'item');
-			item.append(h('span', 'title', s.title), h('span', 'when', new Date(s.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
+			item.append(h('span', 'title', s.title), h('span', 'when', new Date(s.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
 			item.onclick = () => {
 				box.hidden = true;
 				send(panel, { type: 'open', sessionId: s.id });

@@ -26,7 +26,7 @@ const VSCODE = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/
 const IMAGES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 const TEXT = /\.(md|txt|js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|php|py|rb|sh|zsh|yml|yaml|toml|xml|swift|go|rs|c|h|java|kt|sql)$/i;
 // The home's general chat: a Claude Code conversation in the folder for files that belong to no project.
-const GENERAL = { port: 'home', dir: path.join(HOME, 'Desktop/Claude'), place: 'Général' };
+const GENERAL = { port: 'home', dir: path.join(HOME, 'Desktop/Claude'), place: 'General' };
 fs.mkdirSync(GENERAL.dir, { recursive: true });
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
@@ -141,7 +141,7 @@ function tasksOf(dir) {
 }
 
 // Recurrence labels and the months between two due dates.
-const EVERY = { mensuel: 1, trimestriel: 3, annuel: 12 };
+const EVERY = { monthly: 1, quarterly: 3, yearly: 12, mensuel: 1, trimestriel: 3, annuel: 12 }; // the French ones still work
 const every = (task) => task.labels.find((l) => EVERY[l.toLowerCase()]);
 
 // n months later, on the given day of the month (the month's last day when it has fewer).
@@ -235,7 +235,7 @@ function stop(port) {
 // macOS folder dialog; resolves to a path, or null when cancelled.
 function pickFolder() {
 	// Shown by System Events, already running: `tell me to activate` takes osascript ~2 s to become an app.
-	const script = 'tell application "System Events"\nactivate\nPOSIX path of (choose folder with prompt "Dossier du projet (un tableau y sera créé s\'il n\'en a pas)")\nend tell';
+	const script = 'tell application "System Events"\nactivate\nPOSIX path of (choose folder with prompt "Project folder (a board is created in it if it has none)")\nend tell';
 	return new Promise((resolve) => execFile('osascript', ['-e', script], (error, out) => resolve(error ? null : out.trim().replace(/\/$/, ''))));
 }
 

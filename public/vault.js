@@ -16,16 +16,16 @@ const Vault = (() => {
 	function draw() {
 		button.innerHTML = icon(state.until ? OPEN : CLOSED);
 		button.classList.toggle('on', Boolean(state.until));
-		button.title = state.until ? 'Documents chiffrés déverrouillés' : 'Documents chiffrés';
+		button.title = state.until ? 'Encrypted docs unlocked' : 'Encrypted docs';
 		const locked = state.docs.filter((d) => d.marked && d.locked).length;
 		const top = document.createElement('div');
 		top.className = 'top';
 		if (state.error) top.append(Object.assign(document.createElement('p'), { className: 'error', textContent: state.error }));
-		if (locked) top.append(action(`Déverrouiller avec Touch ID (${locked})`, 'unlock'));
+		if (locked) top.append(action(`Unlock with Touch ID (${locked})`, 'unlock'));
 		else if (state.until) {
 			const minutes = Math.max(1, Math.round((state.until - Date.now()) / 60000));
-			top.append(Object.assign(document.createElement('p'), { textContent: `Verrouillage automatique dans ${minutes} min.` }), action('Verrouiller maintenant', 'lock'));
-		} else top.append(Object.assign(document.createElement('p'), { textContent: 'Coche un document pour le chiffrer.' }));
+			top.append(Object.assign(document.createElement('p'), { textContent: `Locks again in ${minutes} min.` }), action('Lock now', 'lock'));
+		} else top.append(Object.assign(document.createElement('p'), { textContent: 'Check a doc to encrypt it.' }));
 		const list = document.createElement('div');
 		list.className = 'docs';
 		for (const doc of state.docs) {
@@ -51,7 +51,7 @@ const Vault = (() => {
 		const result = await api(`projects/${port}/vault`, 'POST', { do: what, file });
 		busy = false;
 		if (port !== current) return;
-		state = result.error ? { ...state, error: result.error === 'Authentication cancelled' ? 'Déverrouillage annulé.' : result.error } : result;
+		state = result.error ? { ...state, error: result.error === 'Authentication cancelled' ? 'Unlock cancelled.' : result.error } : result;
 		draw();
 	}
 

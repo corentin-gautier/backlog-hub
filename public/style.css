@@ -216,7 +216,7 @@ body.resizing iframe { pointer-events: none; }
 	#general { grid-column: 1; grid-row: 3; }
 }
 
-/* "À ne pas oublier": open tasks with a due date, soonest first. */
+/* "Coming up": open tasks with a due date, soonest first. */
 #alerts h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 #alerts .count { font-size: 12px; background: var(--pill); color: var(--pill-text); border-radius: 99px; padding: 1px 8px; letter-spacing: 0; }
 .alerts { background: var(--card); border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); margin-bottom: 40px; overflow: hidden; }
@@ -283,7 +283,7 @@ nav button.dragging { opacity: .4; }
 
 .card.new { display: grid; place-items: center; min-height: 128px; background: none; border: 1.5px dashed var(--dash); box-shadow: none; color: var(--faint); }
 .card.new:hover { color: var(--text); transform: none; }
-.cards:empty::before { content: "Glisser un projet ici"; grid-column: 1 / -1; display: grid; place-items: center; min-height: 60px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--faint); font-size: 13px; }
+.cards:empty::before { content: "Drag a project here"; grid-column: 1 / -1; display: grid; place-items: center; min-height: 60px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--faint); font-size: 13px; }
 
 /* Encrypted docs: the padlock's menu, under the top bar on the right. */
 #vault { width: 30px; padding: 0; justify-content: center; }
