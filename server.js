@@ -213,7 +213,7 @@ function doing(list) {
 function describe(list) {
 	return list
 		.filter((p) => configOf(p.dir))
-		.map((p) => ({ ...p, name: configOf(p.dir).name, place: p.dir.replace(HOME, '~'), ...counts(p.dir) }));
+		.map((p) => ({ ...p, name: configOf(p.dir).name, place: p.dir.replace(HOME, '~'), code: platform.usesCode(p.dir), ...counts(p.dir) }));
 }
 
 // ---- boards ----

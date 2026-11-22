@@ -51,6 +51,7 @@ Electron, macOS and Windows: `electron/main.js` runs `server.js` in the app's No
 
 - A board starts the first time its tab opens: `backlog browser --port P --no-open` in the project folder.
 - A board already listening on its port (a VS Code task, say) is reused.
+- The VS Code button (card and tab bar) shows only when VS Code is installed and the project uses it: a `.vscode/` folder, or a folder already opened in VS Code (its `User/workspaceStorage`).
 - The server waits up to 5 s for the port, then returns its URL.
 - Boards started by the server stop when the project is removed or the server gets SIGINT / SIGTERM.
 

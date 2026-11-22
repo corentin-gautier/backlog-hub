@@ -419,6 +419,7 @@ function card(p) {
 	el.querySelector('.name').textContent = p.name;
 	el.querySelector('.place').textContent = p.place;
 	el.onclick = () => show(String(p.port));
+	el.querySelector('.code').hidden = !p.code;
 	el.querySelector('.code').onclick = (event) => {
 		event.stopPropagation();
 		api(`projects/${p.port}/code`, 'POST');
@@ -439,7 +440,7 @@ function highlight() {
 	$('#home').classList.toggle('on', !current);
 	Object.entries(frames).forEach(([port, pane]) => pane.classList.toggle('on', port === current));
 	$('#claude').hidden = !current;
-	$('#code').hidden = !current;
+	$('#code').hidden = !projects.find((p) => String(p.port) === current)?.code;
 	$('#claude').classList.toggle('on', Claude.visible(current));
 }
 

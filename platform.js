@@ -72,6 +72,29 @@ function openCode(file, line) {
 	execFile(code, ['-g', line ? `${file}:${line}` : file], { shell: shell(code), windowsHide: true });
 	return true;
 }
+// The folders opened in VS Code (each has a workspace.json in its user data), cached for a minute.
+const CODE_DATA = MAC ? path.join(HOME, 'Library/Application Support/Code') : WIN ? path.join(process.env.APPDATA || path.join(HOME, 'AppData/Roaming'), 'Code') : path.join(HOME, '.config/Code');
+let codeInstalled;
+let codeFolders = { at: 0, set: new Set() };
+function openedInCode() {
+	if (Date.now() - codeFolders.at < 60000) return codeFolders.set;
+	const set = new Set();
+	const root = path.join(CODE_DATA, 'User/workspaceStorage');
+	for (const entry of fs.existsSync(root) ? fs.readdirSync(root) : []) {
+		try {
+			const folder = JSON.parse(fs.readFileSync(path.join(root, entry, 'workspace.json'), 'utf8')).folder;
+			if (folder?.startsWith('file://')) set.add(path.resolve(decodeURIComponent(new URL(folder).pathname).replace(/^\/([a-z]:)/i, '$1')).toLowerCase());
+		} catch (e) {}
+	}
+	codeFolders = { at: Date.now(), set };
+	return set;
+}
+// VS Code is offered for a folder when it is installed and the project uses it (a .vscode folder) or the user has opened it there.
+function usesCode(dir) {
+	if (codeInstalled === undefined) codeInstalled = fs.existsSync(VSCODE) || !!which('code');
+	if (!codeInstalled) return false;
+	return fs.existsSync(path.join(dir, '.vscode')) || openedInCode().has(path.resolve(dir).toLowerCase());
+}
 function openFolderInCode(dir) {
 	if (MAC && fs.existsSync('/Applications/Visual Studio Code.app')) return execFile('open', ['-a', 'Visual Studio Code', dir]);
 	const code = fs.existsSync(VSCODE) ? VSCODE : which('code');
@@ -101,4 +124,4 @@ end run`;
 	if (WIN) spawn('cmd', ['/c', 'start', '""', 'cmd', '/k', `claude ${args || ''}`], { cwd: dir, detached: true, stdio: 'ignore' }).unref();
 }
 
-module.exports = { WIN, MAC, HOME, DATA_DIR, hooks, backlog, runBacklog, spawnBacklog, claude, open, openPage, openCode, openFolderInCode, pickFolder, terminal };
+module.exports = { WIN, MAC, HOME, DATA_DIR, hooks, backlog, runBacklog, spawnBacklog, claude, open, openPage, openCode, openFolderInCode, usesCode, pickFolder, terminal };
