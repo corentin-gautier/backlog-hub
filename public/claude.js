@@ -15,7 +15,8 @@ const Claude = (() => {
 		send: icon('M8 12.5v-9M4 7.5l4-4 4 4'),
 		stop: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5"/></svg>',
 	};
-	const CYCLE = ['default', 'acceptEdits', 'plan', 'auto'];
+	const ORDER = ['default', 'acceptEdits', 'plan', 'auto'];
+	const HINTS = { default: 'Claude demande avant chaque modification ou commande', acceptEdits: 'Modifie les fichiers sans demander', plan: 'Explore et propose un plan, sans rien modifier', auto: 'Agit seul, demande seulement pour les actions risquées' };
 
 	const setWidth = (px) => document.body.style.setProperty('--claude-width', `${px}px`);
 	setWidth(stored('claudeWidth', 460));
@@ -214,14 +215,56 @@ const Claude = (() => {
 		panel.sendButton.title = stop ? 'Arrêter (Esc)' : 'Envoyer (↵)';
 	}
 
-	function info(panel, { model, mode }) {
+	function info(panel, { model, choice, mode, models }) {
 		panel.mode = mode;
-		panel.modelChip.textContent = modelName(model) || '…';
-		panel.modelChip.hidden = !model;
+		panel.choice = choice || 'default';
+		if (models?.length) panel.models = models;
+		const chosen = choice && panel.models.find((m) => m.value === choice);
+		panel.modelChip.innerHTML = '<span></span><i class="caret"></i>';
+		panel.modelChip.firstChild.textContent = chosen?.name || modelName(model) || 'Modèle';
+		panel.modelChip.hidden = !model && !panel.models.length;
 		panel.modeChip.dataset.mode = mode;
-		panel.modeChip.innerHTML = `${ICONS[mode] || ''}<span></span>`;
-		panel.modeChip.lastChild.textContent = SHORT[mode] || mode || '…';
-		panel.modeChip.title = `${MODES[mode] || mode} (cliquer pour changer)`;
+		panel.modeChip.innerHTML = `${ICONS[mode] || ''}<span></span><i class="caret"></i>`;
+		panel.modeChip.children[1].textContent = SHORT[mode] || mode || '…';
+		panel.modeChip.title = MODES[mode] || mode || '';
+	}
+
+	// A menu over the composer (the model or the mode); one open at a time, closed by a pick, a click elsewhere or Esc.
+	function menu(panel, chip, items, current, pick) {
+		const open = panel.menu;
+		closeMenu(panel);
+		if (open?.chip === chip) return;
+		const box = h('div', 'pick');
+		box.classList.toggle('right', chip === panel.modelChip);
+		for (const item of items) {
+			const row = h('button', item.value === current ? 'opt on' : 'opt');
+			row.type = 'button';
+			if (item.mode) row.dataset.mode = item.mode;
+			row.innerHTML = item.icon || '';
+			const text = h('span', 'text');
+			text.append(h('b', '', item.label), item.hint ? h('span', 'hint', item.hint) : '');
+			row.append(text, h('span', 'check', item.value === current ? '✓' : ''));
+			row.onclick = () => (closeMenu(panel), pick(item.value));
+			box.append(row);
+		}
+		chip.after(box);
+		chip.classList.add('open');
+		// No higher than the space between the panel's header and the composer.
+		box.style.maxHeight = `${Math.min(340, panel.el.querySelector('.composer').getBoundingClientRect().top - panel.log.getBoundingClientRect().top - 10)}px`;
+		box.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+		const outside = (event) => !box.contains(event.target) && !chip.contains(event.target) && closeMenu(panel);
+		const key = (event) => event.key === 'Escape' && (event.stopPropagation(), closeMenu(panel));
+		document.addEventListener('pointerdown', outside, true);
+		document.addEventListener('keydown', key, true);
+		panel.menu = { chip, box, off: () => (document.removeEventListener('pointerdown', outside, true), document.removeEventListener('keydown', key, true)) };
+	}
+
+	function closeMenu(panel) {
+		if (!panel.menu) return;
+		panel.menu.off();
+		panel.menu.box.remove();
+		panel.menu.chip.classList.remove('open');
+		panel.menu = null;
 	}
 
 	function render(panel, event) {
@@ -248,7 +291,7 @@ const Claude = (() => {
 				panel.draft = null;
 				const answered = new Set(event.events.filter((e) => e.type === 'answered').map((e) => e.id));
 				for (const e of event.events) if (!(e.type === 'ask' && answered.has(e.id)) && e.type !== 'answered') render(panel, e);
-				if (!event.events.length) panel.log.prepend(h('div', 'empty', `Claude Code dans ${panel.place}. Demande-lui ce que tu veux.`));
+				if (!event.events.length) panel.log.prepend(h('div', 'empty', panel.port === 'home' ? 'Une question, une idée, une tâche hors projet ? Demande à Claude.' : `Claude Code dans ${panel.place}. Demande-lui ce que tu veux.`));
 				setBusy(panel, event.busy);
 				if (event.draft) setDraft(panel, event.draft);
 				info(panel, event);
@@ -331,10 +374,11 @@ const Claude = (() => {
 		};
 	}
 
-	function create(port) {
-		const project = projects.find((p) => String(p.port) === port);
+	// A panel beside a board, or the home's general chat (port 'home') in the given box.
+	function create(port, box) {
+		const project = box ? { dir: '', place: 'Général' } : projects.find((p) => String(p.port) === port);
 		const el = document.createElement('aside');
-		el.className = 'claude';
+		el.className = box ? 'claude general' : 'claude';
 		el.innerHTML = `
 			<div class="grip" title="Glisser pour élargir"></div>
 			<header><span class="spark">✻</span><b>Claude</b><span class="where"></span>
@@ -347,13 +391,13 @@ const Claude = (() => {
 			<form class="composer">
 				<div class="slash" hidden></div>
 				<textarea rows="1" placeholder="Écris à Claude… (/ commandes, ↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
-				<div class="bar"><span class="chip model" hidden></span><button type="button" class="chip mode" title="Mode d’autorisation (cliquer pour changer)"></button><button class="send idle"></button></div>
+				<div class="bar"><button type="button" class="chip mode"></button><button type="button" class="chip model" hidden></button><button class="send idle"></button></div>
 			</form>`;
 		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
-		frames[port].append(el);
+		(box || frames[port]).append(el);
 
 		const panel = (panels[port] = {
-			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false, commands: [], matches: [], pick: 0,
+			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false, commands: [], matches: [], pick: 0, models: [], choice: 'default',
 			log: el.querySelector('.log'), typing: el.querySelector('.typing'), input: el.querySelector('textarea'),
 			slash: el.querySelector('.slash'), sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
 		});
@@ -388,7 +432,12 @@ const Claude = (() => {
 			grow();
 			slashMenu(panel);
 		};
-		panel.modeChip.onclick = () => send(panel, { type: 'mode', mode: CYCLE[(CYCLE.indexOf(panel.mode) + 1) % CYCLE.length] });
+		panel.modeChip.onclick = () => menu(panel, panel.modeChip,
+			ORDER.map((mode) => ({ value: mode, mode, icon: ICONS[mode], label: MODES[mode], hint: HINTS[mode] })),
+			panel.mode, (mode) => send(panel, { type: 'mode', mode }));
+		panel.modelChip.onclick = () => menu(panel, panel.modelChip,
+			panel.models.map((m) => ({ value: m.value, label: m.name, hint: m.description })),
+			panel.choice, (model) => send(panel, { type: 'model', model }));
 
 		el.querySelector('[data-act=terminal]').onclick = () => api(`projects/${port}/terminal`, 'POST');
 		el.querySelector('[data-act=hide]').onclick = () => toggle(port, false);
@@ -397,7 +446,8 @@ const Claude = (() => {
 			input.focus();
 		};
 		el.querySelector('[data-act=history]').onclick = () => history(panel);
-		resizable(el.querySelector('.grip'));
+		if (box) el.querySelector('.grip').remove(), el.querySelector('[data-act=hide]').remove();
+		else resizable(el.querySelector('.grip'));
 		connect(port);
 	}
 
@@ -462,5 +512,10 @@ const Claude = (() => {
 		store('claude', [...shown]);
 	}
 
-	return { toggle, visible, stop, wasShown: (port) => shown.has(port) };
+	// The home's general chat, created once.
+	const general = (box) => panels.home || create('home', box);
+
+	return { general, toggle, visible, stop, wasShown: (port) => shown.has(port) };
 })();
+
+Claude.general($('#general'));

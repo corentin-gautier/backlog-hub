@@ -17,6 +17,8 @@
 	--accent: oklch(0.546 0.245 262.881); /* blue-600 */
 	--accent-soft: oklch(0.97 0.014 254.604); /* blue-50 */
 	--pill: oklch(0.97 0.001 106.424); --pill-text: oklch(0.268 0.007 34.298); /* stone-100, stone-800 */
+	/* Active tab and buttons: white on the gray bar, blue-700 text, blue-200 edge. */
+	--on: oklch(0.488 0.243 264.376); --on-bg: #fff; --on-line: oklch(0.882 0.059 254.128);
 }
 @media (prefers-color-scheme: dark) {
 	:root {
@@ -35,18 +37,25 @@
 		--accent: oklch(0.707 0.165 254.624); /* blue-400 */
 		--accent-soft: oklab(0.546 -0.030363 -0.243111 / 0.2); /* blue-600 at 20% */
 		--pill: oklch(0.216 0.006 56.043); --pill-text: oklch(0.923 0.003 48.717); /* stone-900, stone-200 */
+		--on: var(--accent); --on-bg: var(--accent-soft); --on-line: transparent;
 	}
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px -apple-system, system-ui, sans-serif; }
 body { display: flex; flex-direction: column; }
 
-nav { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 10px; background: var(--bar); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
-nav button { -webkit-app-region: no-drag; display: flex; align-items: center; gap: 7px; flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; height: 30px; padding: 0 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: color .15s, background .15s; }
+nav { display: flex; align-items: flex-end; gap: 8px; height: 54px; padding: 0 10px; background: var(--bar); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+nav button { -webkit-app-region: no-drag; display: flex; align-items: center; gap: 7px; flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; height: 32px; margin-bottom: 4px; padding: 0 11px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: color .15s, background .15s; }
 nav button:hover { color: var(--text); background: var(--bar-hover); }
-nav button.on { color: var(--accent); background: var(--accent-soft); }
+nav button.on, #claude.on { color: var(--on); background: var(--on-bg); border-color: var(--on-line); }
+@media (prefers-color-scheme: light) { nav button.on, #claude.on { box-shadow: 0 1px 2px rgb(0 0 0 / .08); } }
 nav svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 #tabs { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+/* The tabs reach 1px into the bar's bottom border so the active project's tab merges with the page below.
+   Every label sits 21px above the bar's bottom: the 42px active tab, the 32px buttons 5px up (4px outside #tabs). */
+#tabs { align-self: stretch; align-items: flex-end; margin-bottom: -1px; }
+#tabs button { margin-bottom: 5px; }
+#tabs [data-port].on { height: 42px; margin-bottom: 0; border-radius: 10px 10px 0 0; border-color: var(--line); border-bottom: 0; color: var(--text); background: var(--bg); box-shadow: none; }
 #tabs [data-home] { margin-right: 10px; position: relative; }
 #tabs [data-home]::after { content: ""; position: absolute; right: -7px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
 #tabs [data-home]:only-child::after { display: none; }
@@ -61,7 +70,6 @@ nav button.on .close { color: inherit; }
 
 nav button[hidden] { display: none; }
 .spark { color: #d97757; }
-#claude.on { color: var(--accent); background: var(--accent-soft); }
 
 .pane { flex: 1; min-height: 0; display: none; }
 .pane.on { display: flex; }
@@ -163,7 +171,24 @@ body.resizing iframe { pointer-events: none; }
 .claude .chip[data-mode=acceptEdits] { --tint: oklch(0.585 0.233 292.717); } /* violet-500 */
 .claude .chip[data-mode=plan] { --tint: oklch(0.6 0.118 184.704); } /* teal-600 */
 .claude .chip[data-mode=auto] { --tint: oklch(0.666 0.179 58.318); } /* amber-600 */
-.claude .chip.model { order: 1; margin-left: auto; padding: 0 6px; }
+.claude .chip.model { order: 1; margin-left: auto; }
+.claude .caret { width: 5px; height: 5px; margin: -2px 0 0 1px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); opacity: .7; }
+.claude .chip.open .caret { transform: rotate(-135deg); margin-top: 3px; }
+
+/* The mode and model menus, over the composer. */
+.claude .pick { position: absolute; z-index: 5; left: 0; bottom: calc(100% + 6px); width: min(320px, 100%); max-height: 340px; overflow: auto; padding: 5px; background: var(--card); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .15); font-size: 12.5px; }
+.claude .pick.right { left: auto; right: 0; }
+.claude .pick .opt { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 8px; font: inherit; color: var(--text); text-align: left; background: none; border: 0; border-radius: 7px; cursor: pointer; }
+.claude .pick .opt:hover { background: var(--hover); }
+.claude .pick .opt svg { flex: none; width: 14px; height: 14px; fill: none; stroke: var(--tint, var(--muted)); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.claude .pick .opt[data-mode=default] { --tint: var(--muted); }
+.claude .pick .opt[data-mode=acceptEdits] { --tint: oklch(0.585 0.233 292.717); }
+.claude .pick .opt[data-mode=plan] { --tint: oklch(0.6 0.118 184.704); }
+.claude .pick .opt[data-mode=auto] { --tint: oklch(0.666 0.179 58.318); }
+.claude .pick .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.claude .pick .text b { font-weight: 500; }
+.claude .pick .hint { color: var(--faint); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claude .pick .check { flex: none; width: 14px; color: var(--accent); font-weight: 600; }
 .claude .send { order: 2; flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; transition: background .15s, opacity .15s; }
 .claude .send svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .claude .send.idle { background: var(--line); color: var(--faint); cursor: default; }
@@ -174,6 +199,22 @@ body.resizing iframe { pointer-events: none; }
 #home.on { display: block; }
 #today { color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
 #home h1 { font-size: 24px; font-weight: 700; margin: 4px 0 32px; }
+
+/* Deadlines on the left, the general Claude chat on the right, in the same row: the chat takes the list's height
+   (it fills its box, so its messages never grow the row), 300px at least, 460px with no deadlines; stacked when narrow. */
+#top { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; margin-bottom: 40px; }
+#alerts { display: contents; }
+#alerts h2 { grid-column: 1; grid-row: 1; }
+#alerts .alerts { grid-column: 1; grid-row: 2; margin-bottom: 0; display: flex; flex-direction: column; }
+#alerts .alerts .more { margin-top: auto; } /* a short list: the button stays at the bottom of the frame */
+#general { grid-column: 2; grid-row: 2; position: relative; min-height: 300px; }
+#alerts:empty + #general { min-height: 460px; }
+.claude.general { position: absolute; inset: 0; width: auto; max-width: none; border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); overflow: hidden; }
+@media (max-width: 980px) {
+	#top { grid-template-columns: 1fr; row-gap: 24px; }
+	#alerts h2 { margin-bottom: -10px; }
+	#general { grid-column: 1; grid-row: 3; }
+}
 
 /* "À ne pas oublier": open tasks with a due date, soonest first. */
 #alerts h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -246,7 +287,7 @@ nav button.dragging { opacity: .4; }
 
 /* Encrypted docs: the padlock's menu, under the top bar on the right. */
 #vault { width: 30px; padding: 0; justify-content: center; }
-#vault-menu { position: fixed; top: 50px; right: 10px; z-index: 20; width: 300px; max-height: 70vh; overflow: auto; background: var(--card); border: 1px solid var(--card-line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .15); font-size: 13px; }
+#vault-menu { position: fixed; top: 58px; right: 10px; z-index: 20; width: 300px; max-height: 70vh; overflow: auto; background: var(--card); border: 1px solid var(--card-line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .15); font-size: 13px; }
 #vault-menu .top { padding: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
 #vault-menu p { margin: 0; color: var(--muted); }
 #vault-menu p.error { color: oklch(0.577 0.245 27.325); }

@@ -60,7 +60,7 @@ function convert(message) {
 // ---- one conversation ----
 
 function create(project) {
-	const chat = { project, sockets: new Set(), events: [], draft: '', busy: false, asks: new Map(), mode: null, model: '', query: null, inbox: null, sessionId: remembered()[project.dir] || null };
+	const chat = { project, sockets: new Set(), events: [], draft: '', busy: false, asks: new Map(), mode: null, model: '', choice: null, query: null, inbox: null, sessionId: remembered()[project.dir] || null };
 	chats.set(project.port, chat);
 	return chat;
 }
@@ -79,7 +79,22 @@ function setBusy(chat, value) {
 	emit(chat, { type: 'busy', value });
 }
 
-const snapshot = (chat) => ({ type: 'reset', events: chat.events, draft: chat.draft, busy: chat.busy, mode: chat.mode, model: chat.model, sessionId: chat.sessionId, commands: commands.get(chat.project.dir) || [] });
+// Before the first message: the default model, and the mode from the user's settings (as Claude Code would start).
+const info = (chat) => ({ type: 'info', model: chat.model || models.find((m) => m.value === 'default')?.resolved || '', choice: chat.choice, mode: chat.mode, models });
+async function startMode(chat) {
+	if (chat.mode) return;
+	const { resolveSettings, filterEscalatingDefaultMode } = await sdk;
+	const settings = await resolveSettings({ cwd: chat.project.dir }).then(filterEscalatingDefaultMode).catch(() => ({}));
+	const mode = settings.permissions?.defaultMode;
+	chat.mode = chat.mode || (MODES.includes(mode) ? mode : 'default');
+}
+const snapshot = (chat) => ({ ...info(chat), type: 'reset', events: chat.events, draft: chat.draft, busy: chat.busy, sessionId: chat.sessionId, commands: commands.get(chat.project.dir) || [] });
+
+// The models Claude Code offers (the same for every project), for the chat's model menu.
+let models = [];
+function setModels(list) {
+	models = list.map((m) => ({ value: m.value, name: m.displayName, description: m.description, resolved: m.resolvedModel || m.value }));
+}
 
 // ---- slash commands ----
 // The project's commands and skills, for the chat's / menu: from the running conversation, else
@@ -99,6 +114,7 @@ async function loadCommands(chat) {
 	const q = query({ prompt: (async function* () { await new Promise(() => {}); })(), options: { cwd: chat.project.dir, systemPrompt: { type: 'preset', preset: 'claude_code' }, persistSession: false, stderr: () => {} } });
 	try {
 		setCommands(chat, await q.supportedCommands());
+		if (!models.length) setModels(await q.supportedModels()), emit(chat, info(chat));
 	} catch (error) {
 		commands.delete(chat.project.dir);
 	} finally {
@@ -160,6 +176,7 @@ async function run(chat) {
 			systemPrompt: { type: 'preset', preset: 'claude_code' },
 			includePartialMessages: true,
 			permissionMode: chat.mode || undefined, // else the user's settings decide
+			model: chat.choice || undefined, // else the default model
 			canUseTool: canUseTool(chat),
 			stderr: () => {},
 		},
@@ -172,8 +189,9 @@ async function run(chat) {
 				chat.model = message.model;
 				chat.mode = message.permissionMode;
 				if (chat.sessionId !== message.session_id) remember(chat.project.dir, (chat.sessionId = message.session_id));
-				emit(chat, { type: 'info', model: chat.model, mode: chat.mode });
+				emit(chat, info(chat));
 				q.supportedCommands().then((list) => setCommands(chat, list), () => {});
+				q.supportedModels().then((list) => (setModels(list), emit(chat, info(chat))), () => {});
 			} else if (message.type === 'system' && message.subtype === 'commands_changed') {
 				setCommands(chat, message.commands);
 			} else if (message.type === 'stream_event' && !message.parent_tool_use_id) {
@@ -223,7 +241,16 @@ const actions = {
 		if (!MODES.includes(mode)) return;
 		chat.mode = mode;
 		await chat.query?.setPermissionMode(mode).catch(() => {});
-		emit(chat, { type: 'info', model: chat.model, mode });
+		emit(chat, info(chat));
+	},
+	// A model from the menu ('default' or null for the default one), for the next messages.
+	async model(chat, { model }) {
+		const found = models.find((m) => m.value === model);
+		if (!found) return;
+		chat.choice = model === 'default' ? null : model;
+		chat.model = found.resolved;
+		await chat.query?.setModel(chat.choice || undefined).catch(() => {});
+		emit(chat, info(chat));
 	},
 	// A new conversation, or an earlier one (sessionId) from the history.
 	async open(chat, { sessionId }) {
@@ -265,7 +292,7 @@ function attach(server, findProject, origins, dataDir) {
 		if (!url.pathname.startsWith('/claude/') || !project || !origins.includes(req.headers.origin)) return socket.destroy();
 		wss.handleUpgrade(req, socket, head, async (ws) => {
 			const chat = chats.get(project.port) || create(project);
-			await loadHistory(chat);
+			await Promise.all([loadHistory(chat), startMode(chat)]);
 			chat.sockets.add(ws);
 			ws.send(JSON.stringify(snapshot(chat)));
 			loadCommands(chat).catch(() => {});
