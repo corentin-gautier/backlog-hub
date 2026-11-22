@@ -12,7 +12,7 @@ First release, as a desktop app for macOS and Windows.
 - A card per Backlog.md board, in categories you name, order by drag and drop and fold.
 - Coming up: open tasks with a due date across every project, soonest first; tasks labelled `monthly`, `quarterly` or `yearly` come back once done.
 - In progress: every task in progress, across projects.
-- Two palettes, Default (Backlog.md's) and Paper, each light or dark; the boards follow the theme.
+- Light or dark, following your system or picked on the home; the boards follow the theme.
 - A tab per open project, reordered by dragging, closed with a middle click.
 
 ### Claude Code
