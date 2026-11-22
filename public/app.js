@@ -208,28 +208,44 @@ function tab(p) {
 }
 
 // ---- the row above the projects: Coming up, In progress, the general chat ----
-// A click on a heading folds its part down to the heading (remembered per browser).
+// Toggles beside the title show or hide each part (remembered per browser); the shown parts share the row.
 
 const SHOWN = 5;
 const showAll = new Set(); // lists showing every row
-const folded = new Set(stored('folded', []));
+const off = new Set(stored('off', []));
+const toggles = {}; // part -> its button
 
 function renderTop() {
 	list('alerts', alerts, alertRow);
 	list('doing', doing, doingRow);
 	const parts = [...document.querySelectorAll('#top .part')];
-	for (const el of parts) el.classList.toggle('folded', folded.has(el.dataset.part));
+	for (const el of parts) {
+		const name = el.dataset.part;
+		const empty = name !== 'claude' && !(name === 'alerts' ? alerts : doing).length;
+		toggles[name].hidden = empty;
+		toggles[name].setAttribute('aria-pressed', !off.has(name));
+		toggles[name].querySelector('.count').textContent = empty || name === 'claude' ? '' : el.querySelector('.count').textContent;
+		el.hidden = empty || off.has(name);
+	}
 	const shown = parts.filter((el) => !el.hidden);
-	$('#top').style.gridTemplateColumns = shown.map((el) => (folded.has(el.dataset.part) ? 'max-content' : 'minmax(0, 1fr)')).join(' ');
-	$('#top').classList.toggle('solo', !shown.some((el) => el.dataset.part !== 'claude' && !folded.has(el.dataset.part)));
+	$('#top').hidden = !shown.length;
+	$('#top').style.gridTemplateColumns = shown.map(() => 'minmax(0, 1fr)').join(' ');
+	$('#top').classList.toggle('solo', shown.length === 1 && shown[0].dataset.part === 'claude');
 }
 
-document.querySelectorAll('#top .part h2').forEach((head) => (head.onclick = () => {
-	const name = head.parentElement.dataset.part;
-	folded.has(name) ? folded.delete(name) : folded.add(name);
-	store('folded', [...folded]);
-	renderTop();
-}));
+for (const part of document.querySelectorAll('#top .part')) {
+	const name = part.dataset.part;
+	const button = (toggles[name] = document.createElement('button'));
+	button.innerHTML = '<i class="tick"></i><span></span><span class="count"></span>';
+	button.children[1].textContent = part.querySelector('h2').firstChild.textContent.trim();
+	button.title = 'Show or hide on the home';
+	button.onclick = () => {
+		off.has(name) ? off.delete(name) : off.add(name);
+		store('off', [...off]);
+		renderTop();
+	};
+	$('#toggles').append(button);
+}
 
 // A list of tasks (hidden when empty): the first rows, then a button for the rest.
 function list(name, items, row) {

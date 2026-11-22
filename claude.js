@@ -31,6 +31,9 @@ const commandOf = (text) => {
 	return name ? `${name.startsWith('/') ? name : `/${name}`} ${(text.match(/<command-args>([\s\S]*?)<\/command-args>/) || [])[1] || ''}`.trim() : '';
 };
 
+// Images sent with a message, as the page shows them: data URLs.
+const imagesOf = (content) => (Array.isArray(content) ? content : []).filter((b) => b.type === 'image' && b.source?.type === 'base64').map((b) => `data:${b.source.media_type};base64,${b.source.data}`);
+
 const textOf = (content) => (typeof content === 'string' ? content : (content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n'));
 
 function convert(message) {
@@ -52,7 +55,9 @@ function convert(message) {
 		const results = (content || []).filter((b) => b.type === 'tool_result');
 		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000) }));
 		const text = textOf(content);
-		return text && !message.isSynthetic && !text.startsWith('<') ? [{ type: 'user', text }] : [];
+		const images = imagesOf(content);
+		if (message.isSynthetic || text.startsWith('<') || (!text && !images.length)) return [];
+		return [{ type: 'user', text, ...(images.length ? { images } : {}) }];
 	}
 	return [];
 }
@@ -223,12 +228,16 @@ function close(chat) {
 }
 
 const actions = {
-	send(chat, { text }) {
-		if (!text?.trim()) return;
-		emit(chat, { type: 'user', text });
+	// A message, with images dropped or pasted in the composer (data URLs).
+	send(chat, { text = '', images = [] }) {
+		const blocks = images.map((url) => url.match(/^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/)).filter(Boolean)
+			.map(([, media_type, data]) => ({ type: 'image', source: { type: 'base64', media_type, data } }));
+		if (!text.trim() && !blocks.length) return;
+		emit(chat, { type: 'user', text, ...(blocks.length ? { images: imagesOf(blocks) } : {}) });
 		setBusy(chat, true);
 		if (!chat.inbox) run(chat);
-		chat.inbox.push({ type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null });
+		const content = blocks.length ? [...blocks, ...(text.trim() ? [{ type: 'text', text }] : [])] : text;
+		chat.inbox.push({ type: 'user', message: { role: 'user', content }, parent_tool_use_id: null });
 	},
 	answer(chat, { id, choice, answers }) {
 		chat.asks.get(id)?.({ choice, answers });

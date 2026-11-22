@@ -208,10 +208,11 @@ const Claude = (() => {
 	}
 
 	function sendState(panel) {
-		const stop = panel.busy && !panel.input.value.trim();
+		const empty = !panel.input.value.trim() && !panel.images.length;
+		const stop = panel.busy && empty;
 		panel.sendButton.classList.toggle('stop', stop);
 		panel.sendButton.innerHTML = stop ? ICONS.stop : ICONS.send;
-		panel.sendButton.classList.toggle('idle', !stop && !panel.input.value.trim());
+		panel.sendButton.classList.toggle('idle', !stop && empty);
 		panel.sendButton.title = stop ? 'Stop (Esc)' : 'Send (↵)';
 	}
 
@@ -269,7 +270,15 @@ const Claude = (() => {
 
 	function render(panel, event) {
 		switch (event.type) {
-			case 'user': return append(panel, h('div', 'me', event.text));
+			case 'user': {
+				const el = h('div', 'me', event.text);
+				if (event.images?.length) {
+					const row = h('div', 'shots');
+					for (const src of event.images) row.append(Object.assign(h('img'), { src }));
+					el.prepend(row);
+				}
+				return append(panel, el);
+			}
 			case 'text': {
 				setDraft(panel, '');
 				const el = h('div', 'ai md');
@@ -299,6 +308,68 @@ const Claude = (() => {
 				panel.log.scrollTop = panel.log.scrollHeight;
 			}
 		}
+	}
+
+	// ---- images ----
+	// Dropped on the panel or pasted in the composer, shown above the input (× removes one), sent with the message.
+
+	const MAX_SIDE = 1568; // larger images are scaled down (Claude would anyway), keeping the message small
+	function readImage(file) {
+		return new Promise((resolve) => {
+			const url = URL.createObjectURL(file);
+			const img = new Image();
+			img.onload = () => {
+				const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+				const canvas = Object.assign(document.createElement('canvas'), { width: Math.round(img.width * scale), height: Math.round(img.height * scale) });
+				canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+				URL.revokeObjectURL(url);
+				resolve(file.type === 'image/jpeg' ? canvas.toDataURL('image/jpeg', 0.9) : canvas.toDataURL('image/png'));
+			};
+			img.onerror = () => (URL.revokeObjectURL(url), resolve(null));
+			img.src = url;
+		});
+	}
+
+	function setImages(panel, images) {
+		panel.images = images;
+		panel.shots.hidden = !images.length;
+		panel.shots.replaceChildren(...images.map((src, i) => {
+			const item = h('span', 'shot');
+			const remove = h('button', '', '×');
+			remove.type = 'button';
+			remove.title = 'Remove';
+			remove.onclick = () => setImages(panel, panel.images.filter((_, j) => j !== i));
+			item.append(Object.assign(h('img'), { src }), remove);
+			return item;
+		}));
+		sendState(panel);
+	}
+
+	async function addImages(panel, files) {
+		const images = (await Promise.all([...files].filter((f) => f.type.startsWith('image/')).map(readImage))).filter(Boolean);
+		if (images.length) setImages(panel, [...panel.images, ...images]), panel.input.focus();
+	}
+
+	function dropImages(panel) {
+		const { el } = panel;
+		const files = (event) => [...(event.dataTransfer?.items || [])].some((i) => i.kind === 'file');
+		let depth = 0;
+		el.addEventListener('dragenter', (event) => files(event) && (depth++, el.classList.add('dropping')));
+		el.addEventListener('dragleave', () => depth && !--depth && el.classList.remove('dropping'));
+		el.addEventListener('dragover', (event) => files(event) && event.preventDefault());
+		el.addEventListener('drop', (event) => {
+			if (!files(event)) return;
+			event.preventDefault();
+			depth = 0;
+			el.classList.remove('dropping');
+			addImages(panel, event.dataTransfer.files);
+		});
+		panel.input.addEventListener('paste', (event) => {
+			const images = [...event.clipboardData.files].filter((f) => f.type.startsWith('image/'));
+			if (!images.length) return;
+			event.preventDefault();
+			addImages(panel, images);
+		});
 	}
 
 	// ---- slash commands ----
@@ -390,6 +461,7 @@ const Claude = (() => {
 			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude is working…</span></div></div>
 			<form class="composer">
 				<div class="slash" hidden></div>
+				<div class="shots" hidden></div>
 				<textarea rows="1" placeholder="Message Claude… (/ commands, ↵ send, ⇧↵ new line)"></textarea>
 				<div class="bar"><button type="button" class="chip mode"></button><button type="button" class="chip model" hidden></button><button class="send idle"></button></div>
 			</form>`;
@@ -397,11 +469,12 @@ const Claude = (() => {
 		(box || frames[port]).append(el);
 
 		const panel = (panels[port] = {
-			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false, commands: [], matches: [], pick: 0, models: [], choice: 'default',
+			el, port, images: [], shots: el.querySelector('.composer .shots'), dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false, commands: [], matches: [], pick: 0, models: [], choice: 'default',
 			log: el.querySelector('.log'), typing: el.querySelector('.typing'), input: el.querySelector('textarea'),
 			slash: el.querySelector('.slash'), sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
 		});
 		openLinks(panel);
+		dropImages(panel);
 		const { input } = panel;
 		const grow = () => {
 			input.style.height = 'auto';
@@ -424,10 +497,11 @@ const Claude = (() => {
 		el.querySelector('form').onsubmit = (event) => {
 			event.preventDefault();
 			const text = input.value.trim();
-			if (!text) return panel.busy && send(panel, { type: 'stop' });
-			const local = LOCAL[(text.match(/^\/(\S+)$/) || [])[1]];
+			if (!text && !panel.images.length) return panel.busy && send(panel, { type: 'stop' });
+			const local = !panel.images.length && LOCAL[(text.match(/^\/(\S+)$/) || [])[1]];
 			if (local) local.run(panel);
-			else send(panel, { type: 'send', text });
+			else send(panel, { type: 'send', text, images: panel.images });
+			setImages(panel, []);
 			input.value = '';
 			grow();
 			slashMenu(panel);

@@ -9,7 +9,7 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Layout
 
 - Top bar: a Home tab, one tab per open project, and a + button to add a project.
-- Home: today's date (in the browser's language), "My projects", a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one, and the "Add a project" card), then a "+ New category" button.
+- Home: today's date (in the browser's language), "My projects" with the top row's toggles at its right, a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one, and the "Add a project" card), then a "+ New category" button.
 
 ## Categories and order
 
@@ -19,9 +19,9 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 
 ## Top row
 
-- Coming up, In progress and Claude side by side (stacked under 980px wide); a list with no task is hidden.
-- Clicking a heading folds its part down to the heading (a narrow column), and back; folded parts are kept per browser (`folded` in localStorage).
-- The lists stretch to the row's height; the chat fills its box, 300px high at least, 460px when no list is open.
+- Coming up, In progress and Claude side by side in equal columns (stacked under 980px wide).
+- Toggle chips beside "My projects" (with the lists' counts) show or hide each part; the shown ones share the row. Hidden parts are kept per browser (`off` in localStorage). A list with no task is hidden, and so is its chip.
+- The lists stretch to the row's height; the chat fills its box, 300px high at least, 460px when it is alone.
 
 ## Coming up
 
@@ -55,6 +55,7 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 
 - ✻ Claude in the top bar (shown on a project tab), or Ctrl+`, shows or hides a chat beside the board with Claude Code in the project folder (`public/claude.js`): Markdown replies, tool calls (diffs for edits, output on click), permission and question cards, todo list.
 - Hiding the panel (×) or switching tabs leaves Claude running; closing the project's tab stops it. The clock lists earlier conversations, + starts a new one, ↗ opens the current one in Terminal.app.
+- Images dropped on the panel or pasted in the input show as thumbnails above it (× removes one) and go with the next message; larger than 1568px, they are scaled down first. The sent images show in the message.
 - ↵ sends, ⇧↵ adds a line, Esc (or ■) stops Claude. The chip under the input cycles the permission mode (ask, accept edits, plan, auto).
 - Typing `/` opens the project's slash commands and skills, filtered as you type: ↑↓ to move, Tab completes, ↵ completes or sends one without arguments, Esc closes. `/clear` (new conversation) and `/resume` (the history) are handled by the page; the rest go to Claude Code, and the output of `/context`, `/usage`… shows as a reply.
 - Drag the panel's left edge to resize it; the width and which panels are open are remembered (`localStorage`).

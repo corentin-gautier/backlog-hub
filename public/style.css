@@ -99,6 +99,16 @@ body.resizing iframe { pointer-events: none; }
 .claude .log { flex: 1; min-height: 0; overflow: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 10px; line-height: 1.55; }
 .claude .empty { margin: auto; color: var(--faint); text-align: center; padding: 0 24px; }
 .claude .me { align-self: flex-end; max-width: 85%; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--accent-soft); padding: 8px 12px; border-radius: 14px 14px 4px 14px; }
+.claude .me .shots { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.claude .me .shots:not(:last-child) { margin-bottom: 6px; }
+.claude .me .shots img { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; }
+.claude .composer .shots { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 6px 8px 0; }
+.claude .composer .shots[hidden] { display: none; }
+.claude .shot { position: relative; }
+.claude .shot img { display: block; height: 56px; max-width: 120px; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; }
+.claude .shot button { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--text); color: var(--card); font-size: 12px; line-height: 18px; cursor: pointer; }
+.claude.dropping .composer { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.claude.dropping .log { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .claude .md { overflow-wrap: anywhere; }
 .claude .md > :first-child { margin-top: 0; }
 .claude .md > :last-child { margin-bottom: 0; }
@@ -198,19 +208,28 @@ body.resizing iframe { pointer-events: none; }
 #home { flex: 1; padding: 48px 56px 56px; display: none; overflow: auto; }
 #home.on { display: block; }
 #today { color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
-#home h1 { font-size: 24px; font-weight: 700; margin: 4px 0 32px; }
+#home .masthead { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin: 4px 0 32px; }
+#home h1 { font-size: 24px; font-weight: 700; margin: 0; flex: 1; }
 
-/* Coming up, In progress and the general Claude chat in one row (columns set by app.js: a folded part keeps only
-   its heading). The lists stretch to the row's height; the chat fills its box, so its messages never grow the row:
-   300px at least, 460px with no list open. Stacked when narrow. */
+/* Toggles beside the title: on, a filled chip with a tick; off, an outlined one. */
+#toggles { display: flex; gap: 6px; }
+#toggles button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px 0 10px; border: 1px solid var(--line); border-radius: 99px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+#toggles button[hidden] { display: none; }
+#toggles button:hover { color: var(--text); border-color: color-mix(in srgb, var(--text) 25%, var(--line)); }
+#toggles button[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+#toggles .count:empty { display: none; }
+#toggles .count { font-size: 11.5px; opacity: .75; }
+#toggles .tick { width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 4px; opacity: .6; }
+#toggles [aria-pressed="true"] .tick { opacity: 1; border: 0; background: currentColor; mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>') center / contain no-repeat; }
+
+/* Coming up, In progress and the general Claude chat in one row, each shown part an equal column (set by app.js).
+   The lists stretch to the row's height; the chat fills its box, so its messages never grow the row:
+   300px at least, 460px when it is alone. Stacked when narrow. */
 #top { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 24px; margin-bottom: 40px; }
+#top[hidden] { display: none; }
 .part { display: flex; flex-direction: column; min-width: 0; }
 .part[hidden] { display: none; }
-.part.folded > :not(h2) { display: none; }
-.part h2 { cursor: pointer; user-select: none; white-space: nowrap; }
-.part h2:hover { color: var(--text); }
-.chevron { width: 6px; height: 6px; margin: 0 2px 0 1px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s; }
-.part.folded .chevron { transform: rotate(-45deg) translate(-1px, -1px); }
+.part h2 { white-space: nowrap; }
 .part .alerts { flex: 1; margin-bottom: 0; display: flex; flex-direction: column; }
 .part .alerts .more { margin-top: auto; } /* a short list: the button stays at the bottom of the frame */
 #general { flex: 1; position: relative; min-height: 300px; }
