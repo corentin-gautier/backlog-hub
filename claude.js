@@ -232,6 +232,8 @@ async function run(chat) {
 	try {
 		for await (const message of q) {
 			if (chat.query !== q) break;
+			// A turn Claude starts by itself (a background task or subagent finished): working again.
+			if (!chat.busy && ['assistant', 'stream_event'].includes(message.type)) setBusy(chat, true);
 			if (message.type === 'system' && message.subtype === 'init') {
 				chat.model = message.model;
 				chat.mode = message.permissionMode;
