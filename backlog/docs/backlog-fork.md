@@ -9,7 +9,7 @@ Backlog.md is a compiled binary, so what Backlog Hub changes in the boards lives
 ## What the fork changes
 
 - Theme: follows macOS, live. The toggle still picks the other theme; picking the system's one again goes back to following it. Saved as `backlog-theme-choice` (the old `backlog-theme` was saved on every load, so it is dropped). Inside Backlog Hub, the hub's theme wins and the toggle changes it (`ThemeContext.tsx`).
-- Docs are edited where they are shown (`DocEditor.tsx`, Milkdown Crepe): formatting toolbar on selection, `/` or the + handle to insert a block, Markdown shortcuts, editable tables. Saved 0.8 s after the last keystroke (Saved / Saving… beside the buttons); the title is edited in place too.
+- Docs are edited where they are shown (`DocEditor.tsx`, Milkdown Crepe): formatting toolbar on selection (with the block's level: text, heading 1 to 3), `/` to insert a block (no block handle: its + and drag are hidden), Markdown shortcuts, editable tables. Saved 0.8 s after the last keystroke (Saved / Saving… beside the buttons); the title is edited in place too.
 - The Markdown button opens the former editor: source, title and path, with Save and Cancel.
 - The Markdown written back keeps the file's style: `-` lists, `---` under table headers, unpadded tables, bare links. The server itself drops the blank line after the front matter (as before).
 - A file changed elsewhere (Claude, git) while open reloads in the editor, unless an edit is waiting to be saved.
