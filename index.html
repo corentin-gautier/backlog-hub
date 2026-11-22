@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backlog Hub — every Backlog.md board on your Mac, on one page</title>
+<meta name="description" content="A home page for every Backlog.md board on your Mac: projects in categories, tasks coming up across all of them, and Claude Code beside each board. Free and open source.">
+<meta name="theme-color" content="#f1ebdf" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161411" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+	:root {
+		--serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+		--mono: ui-monospace, "SF Mono", Menlo, monospace;
+		--sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+		--bg: #fbf8f2; --bar: #f1ebdf; --card: #fffdf9; --text: #26211c; --muted: #6f6458; --faint: #8f8475;
+		--line: #e4dccd; --track: #ebe3d4; --soft: #f1ebdf; --done: #5f8a5a; --doing: #d4a13d;
+		--accent: #c2553a; --accent-soft: #f6e3da; --accent-text: #a8442c;
+		color-scheme: light dark;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #1e1b18; --bar: #161411; --card: #26221e; --text: #efe8dc; --muted: #a89c8c; --faint: #847a6d;
+			--line: #3a342d; --track: #3a342d; --soft: #2f2a25; --done: #7fa978; --doing: #d9ac4f;
+			--accent: #e07a5c; --accent-soft: #3d2a22; --accent-text: #f0a088;
+		}
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+	a { color: inherit; }
+	.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+	.kicker { font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+	h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.015em; margin: 0; }
+
+	/* Top bar */
+	header.bar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+	header.bar .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
+	.brand { display: flex; align-items: center; gap: 10px; font: 600 19px var(--serif); text-decoration: none; }
+	.brand img { width: 30px; height: 30px; }
+	header.bar nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 500; }
+	header.bar nav a { text-decoration: none; color: var(--muted); }
+	header.bar nav a:hover { color: var(--text); }
+	.btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 6px; font: 600 14.5px var(--sans); text-decoration: none; border: 1px solid transparent; transition: transform .15s, box-shadow .15s, background .15s; }
+	.btn:hover { transform: translateY(-1px); }
+	.btn.primary { background: var(--accent); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); }
+	.btn.ghost { border-color: var(--line); background: var(--card); }
+	.btn.small { height: 34px; padding: 0 14px; font-size: 13.5px; }
+	.btn svg { width: 17px; height: 17px; fill: currentColor; }
+
+	/* Hero */
+	.hero { padding: 84px 0 40px; text-align: center; }
+	.hero h1 { font-size: clamp(42px, 6.4vw, 76px); line-height: 1.02; margin: 18px auto 22px; max-width: 900px; }
+	.hero h1 em { color: var(--accent); }
+	.hero p.lead { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 auto 32px; }
+	.hero .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+	.hero .note { margin-top: 16px; font: 12.5px var(--mono); color: var(--faint); }
+
+	/* The app, drawn */
+	.shot { margin: 56px auto 0; max-width: 1060px; perspective: 2000px; }
+	.win { border-radius: 12px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line), 0 30px 80px rgb(40 25 10 / .18); text-align: left; font-size: 13px; line-height: 1.4; }
+	.win .tabs { display: flex; align-items: flex-end; gap: 3px; height: 46px; padding: 0 12px; background: var(--bar); border-bottom: 1px solid var(--line); }
+	.win .lights { display: flex; gap: 7px; align-self: center; margin-right: 14px; }
+	.win .lights i { width: 11px; height: 11px; border-radius: 50%; }
+	.win .lights i:nth-child(1) { background: #ff5f57; } .win .lights i:nth-child(2) { background: #febc2e; } .win .lights i:nth-child(3) { background: #28c840; }
+	.win .t { display: flex; align-items: center; gap: 7px; height: 30px; margin-bottom: 5px; padding: 0 11px; border-radius: 8px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+	.win .t.on { height: 38px; margin: 0 0 -1px; border: 1px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; background: var(--bg); color: var(--text); }
+	.win .sp { flex: 1; }
+	.spark { color: #d97757; }
+	.dot { flex: none; width: 15px; height: 15px; border-radius: 4px; display: inline-grid; place-items: center; color: #fff; font: 700 9px var(--sans); }
+	.win main { padding: 30px 34px 34px; }
+	.win .dateline { display: flex; justify-content: space-between; align-items: center; }
+	.win .today { font: 500 11px var(--mono); letter-spacing: .14em; color: var(--muted); }
+	.seg { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--soft); font-size: 11px; font-weight: 500; color: var(--faint); }
+	.seg span { padding: 3px 8px; border-radius: 6px; }
+	.seg span.on { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+	.win h4 { margin: 4px 0 22px; font: 600 34px/1.1 var(--serif); letter-spacing: -.02em; }
+	.cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+	.win h5 { display: flex; align-items: center; gap: 8px; margin: 0 0 9px; font: italic 500 16px var(--serif); color: var(--muted); }
+	.count { font: 500 10.5px/17px var(--mono); padding: 0 6px; border-radius: 99px; background: var(--track); color: var(--muted); font-style: normal; }
+	.box { background: var(--card); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 1px 0 var(--line); }
+	.row { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-top: 1px solid var(--line); }
+	.row:first-child { border: 0; }
+	.date { flex: none; width: 38px; text-align: center; padding: 4px 0; border-radius: 4px; background: var(--soft); line-height: 1.1; }
+	.date b { display: block; font: 600 15px var(--serif); }
+	.date small { font: 9px var(--mono); letter-spacing: .08em; color: var(--muted); }
+	.row.soon .date { background: color-mix(in srgb, var(--doing) 25%, transparent); }
+	.row .what { flex: 1; min-width: 0; }
+	.row .what div { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.row .what small { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 11.5px; }
+	.row .what small .dot { width: 12px; height: 12px; font-size: 8px; }
+	.row .when { font-size: 11.5px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+	.row.soon .when { color: #a8741a; }
+	.chat { display: flex; flex-direction: column; height: 100%; min-height: 200px; padding: 12px; gap: 9px; }
+	.bubble { align-self: flex-end; max-width: 85%; background: var(--accent-soft); padding: 7px 11px; border-radius: 12px 12px 3px 12px; }
+	.reply { color: var(--text); }
+	.tool { display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; font-size: 11.5px; color: var(--muted); }
+	.tool code { font: 11px var(--mono); background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+	.tool .ok { color: var(--done); font-weight: 700; }
+	.composer { margin-top: auto; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--faint); background: var(--bg); display: flex; justify-content: space-between; align-items: center; }
+	.composer i { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
+	.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 30px; }
+	.card { padding: 16px; }
+	.card .top { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+	.avatar { width: 34px; height: 34px; border-radius: 6px; display: grid; place-items: center; color: #fff; font: 600 16px var(--serif); }
+	.card .name { font: 600 16px var(--serif); }
+	.card .place { font-size: 11px; color: var(--faint); }
+	.progress { height: 5px; border-radius: 3px; background: var(--track); display: flex; overflow: hidden; }
+	.progress i:nth-child(1) { background: var(--done); } .progress i:nth-child(2) { background: var(--doing); }
+	.stats { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--muted); }
+	.stats b { color: var(--text); }
+
+	/* Sections */
+	section.part { padding: 110px 0 0; }
+	.part-head { max-width: 680px; margin-bottom: 48px; }
+	.part-head h2 { font-size: clamp(32px, 4vw, 46px); line-height: 1.08; margin: 12px 0 14px; }
+	.part-head p { color: var(--muted); font-size: 17.5px; margin: 0; }
+	.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+	.feature { background: var(--card); padding: 30px 28px 32px; }
+	.feature .glyph { width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-text); margin-bottom: 18px; }
+	.feature .glyph svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+	.feature h3 { font-size: 22px; margin-bottom: 8px; }
+	.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+
+	/* Split: board + Claude */
+	.split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: center; }
+	.split ul { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 14px; }
+	.split li { display: flex; gap: 12px; color: var(--muted); }
+	.split li b { color: var(--text); font-weight: 600; }
+	.split li::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 9px; border-radius: 50%; background: var(--accent); }
+	.board { display: grid; grid-template-columns: 1fr 1fr 1.25fr; min-height: 330px; }
+	.board .col { padding: 14px 12px; border-right: 1px solid var(--line); }
+	.board .col h6 { margin: 0 0 10px; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+	.board .task { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 9px; margin-bottom: 8px; font-size: 12px; font-weight: 500; }
+	.board .task small { display: block; color: var(--faint); font: 10px var(--mono); margin-bottom: 2px; }
+	.board .claude { background: var(--bg); display: flex; flex-direction: column; }
+	.board .claude header { padding: 10px 12px; border-bottom: 1px solid var(--line); font-weight: 600; font-size: 12px; }
+
+	/* Install */
+	.install { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+	.steps { counter-reset: s; display: grid; gap: 22px; }
+	.step { display: flex; gap: 16px; }
+	.step::before { counter-increment: s; content: counter(s); flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 600 16px var(--serif); border: 1px solid var(--line); background: var(--card); }
+	.step h3 { font-size: 19px; margin: 3px 0 4px; }
+	.step p { margin: 0; color: var(--muted); font-size: 15px; }
+	pre { margin: 0; padding: 24px 26px; border-radius: 8px; background: #26211c; color: #efe8dc; font: 13.5px/1.75 var(--mono); overflow: auto; }
+	pre .c { color: #8f8475; }
+	pre .p { color: #e07a5c; user-select: none; }
+	.req { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+	.req code { font: 12.5px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 3px; }
+
+	/* End */
+	.end { margin: 120px 0 0; padding: 80px 0; text-align: center; border-top: 1px solid var(--line); background: var(--bar); }
+	.end img { width: 84px; height: 84px; margin-bottom: 20px; filter: drop-shadow(0 10px 24px rgb(40 25 10 / .2)); }
+	.end h2 { font-size: clamp(30px, 4vw, 44px); margin-bottom: 26px; }
+	footer { padding: 28px 0 40px; font-size: 13px; color: var(--faint); background: var(--bar); }
+	footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+	@media (max-width: 900px) {
+		.cols, .cards, .features, .split, .install { grid-template-columns: 1fr; }
+		.cols > :nth-child(3), .cards > :nth-child(n+2) { display: none; }
+		.board { grid-template-columns: 1fr 1.3fr; } .board .col:nth-child(2) { display: none; }
+		header.bar nav a:not(.btn) { display: none; }
+	}
+</style>
+</head>
+<body>
+
+<header class="bar">
+	<div class="wrap">
+		<a class="brand" href="#"><img src="icon.svg" alt="">Backlog Hub</a>
+		<nav>
+			<a href="#features">Features</a>
+			<a href="#claude">Claude Code</a>
+			<a href="#install">Install</a>
+			<a class="btn ghost small" href="https://github.com/corentin-gautier/backlog-hub"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>GitHub</a>
+		</nav>
+	</div>
+</header>
+
+<section class="hero">
+	<div class="wrap">
+		<div class="kicker">For Backlog.md · macOS · Free and open source</div>
+		<h1>Every project on your Mac, <em>on one page.</em></h1>
+		<p class="lead">Backlog Hub gathers every Backlog.md board you have into a calm home: projects in categories, what's due across all of them, and Claude Code right beside each board.</p>
+		<div class="ctas">
+			<a class="btn primary" href="#install">Install on your Mac</a>
+			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View the source</a>
+		</div>
+		<div class="note">macOS · Node 20+ · MIT licence</div>
+
+		<div class="shot">
+			<div class="win">
+				<div class="tabs">
+					<div class="lights"><i></i><i></i><i></i></div>
+					<div class="t on">Home</div>
+					<div class="t"><span class="dot" style="background:#c2553a">A</span>Atlas</div>
+					<div class="t"><span class="dot" style="background:#4a6d8c">S</span>Studio site</div>
+					<div class="t"><span class="dot" style="background:#5f8a5a">G</span>Garden journal</div>
+					<div class="sp"></div>
+					<div class="t"><span class="spark">✻</span>Claude</div>
+				</div>
+				<main>
+					<div class="dateline"><span class="today">MONDAY, NOVEMBER 23</span><div class="seg"><span>Default</span><span class="on">Paper</span></div></div>
+					<h4>My projects</h4>
+					<div class="cols">
+						<div>
+							<h5>Coming up <span class="count">5</span></h5>
+							<div class="box">
+								<div class="row soon"><span class="date"><b>25</b><small>NOV</small></span><div class="what"><div>Send the quote to the client</div><small><span class="dot" style="background:#4a6d8c">S</span>Studio site · TASK-14</small></div><span class="when">in 2 days</span></div>
+								<div class="row"><span class="date"><b>01</b><small>DEC</small></span><div class="what"><div>Renew the domain name</div><small><span class="dot" style="background:#4a6d8c">S</span>Studio site · TASK-3</small></div><span class="when">in 8 days</span></div>
+								<div class="row"><span class="date"><b>15</b><small>DEC</small></span><div class="what"><div>Plant the spring bulbs</div><small><span class="dot" style="background:#5f8a5a">G</span>Garden journal · TASK-9</small></div><span class="when">in 22 days</span></div>
+							</div>
+						</div>
+						<div>
+							<h5>In progress <span class="count">3</span></h5>
+							<div class="box">
+								<div class="row"><div class="what"><div>Offline sync for the mobile app</div><small><span class="dot" style="background:#c2553a">A</span>Atlas · TASK-42</small></div></div>
+								<div class="row"><div class="what"><div>Redesign the pricing page</div><small><span class="dot" style="background:#4a6d8c">S</span>Studio site · TASK-17</small></div></div>
+								<div class="row"><div class="what"><div>Write the November entry</div><small><span class="dot" style="background:#5f8a5a">G</span>Garden journal · TASK-11</small></div></div>
+							</div>
+						</div>
+						<div>
+							<h5>Claude</h5>
+							<div class="box chat">
+								<div class="bubble">Which of my projects have overdue tasks?</div>
+								<div class="reply">None are overdue. <b>Studio site</b> has a quote due in 2 days, the closest deadline.</div>
+								<div class="composer">Message Claude… <i></i></div>
+							</div>
+						</div>
+					</div>
+					<div class="cards">
+						<div class="box card"><div class="top"><span class="avatar" style="background:#c2553a">A</span><div><div class="name">Atlas</div><div class="place">~/Projects/atlas</div></div></div><div class="progress"><i style="width:58%"></i><i style="width:12%"></i></div><div class="stats"><span><b>29</b> done</span><span><b>6</b> in progress</span><span><b>15</b> to do</span></div></div>
+						<div class="box card"><div class="top"><span class="avatar" style="background:#4a6d8c">S</span><div><div class="name">Studio site</div><div class="place">~/Projects/studio-site</div></div></div><div class="progress"><i style="width:71%"></i><i style="width:9%"></i></div><div class="stats"><span><b>24</b> done</span><span><b>3</b> in progress</span><span><b>7</b> to do</span></div></div>
+						<div class="box card"><div class="top"><span class="avatar" style="background:#5f8a5a">G</span><div><div class="name">Garden journal</div><div class="place">~/Documents/garden</div></div></div><div class="progress"><i style="width:40%"></i><i style="width:10%"></i></div><div class="stats"><span><b>8</b> done</span><span><b>2</b> in progress</span><span><b>10</b> to do</span></div></div>
+					</div>
+				</main>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="part" id="features">
+	<div class="wrap">
+		<div class="part-head">
+			<div class="kicker">What it does</div>
+			<h2>A morning paper for your projects.</h2>
+			<p>Backlog.md keeps tasks as Markdown files in each repo. Backlog Hub reads them all and lays them out on one page, so you start the day knowing where everything stands.</p>
+		</div>
+		<div class="features">
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div><h3>Every board, one home</h3><p>A card per project with its progress, grouped in categories you name and order by drag and drop. Boards are found in your folders on first run.</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><h3>Coming up</h3><p>Open tasks with a due date, across every project, soonest first. Tasks labelled monthly, quarterly or yearly come back once done.</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h12"/></svg></div><h3>A tab per project</h3><p>Open a board in its own tab, reorder tabs, close them. Each board starts on its own port the first time you open it.</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg></div><h3>Claude Code beside you</h3><p>A chat with Claude Code in each project, and a general one on the home page. Conversations keep running while the page is closed.</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h3>Encrypted docs</h3><p>Keep a sensitive doc encrypted on disk and unlock it with Touch ID, right from the doc page (with the optional Backlog.md fork).</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><h3>A real Mac app</h3><p>A small native app, light and dark, with a Paper or Default palette. No Electron: under a megabyte, the page in a WebKit window.</p></div>
+		</div>
+	</div>
+</section>
+
+<section class="part" id="claude">
+	<div class="wrap split">
+		<div class="part-head" style="margin:0">
+			<div class="kicker">Claude Code, built in</div>
+			<h2>Ask about the board you are looking at.</h2>
+			<p>Press Ctrl+` on any board and Claude Code opens beside it, in that project's folder.</p>
+			<ul>
+				<li><span><b>It sees what you see.</b> Tasks, docs and code of the open project.</span></li>
+				<li><span><b>Pick up where you left off.</b> Each project keeps its conversation; earlier ones are a click away.</span></li>
+				<li><span><b>Files and links open where they belong.</b> Code in VS Code at the right line, pages in your browser.</span></li>
+			</ul>
+		</div>
+		<div class="win">
+			<div class="tabs">
+				<div class="lights"><i></i><i></i><i></i></div>
+				<div class="t">Home</div>
+				<div class="t on"><span class="dot" style="background:#c2553a">A</span>Atlas</div>
+				<div class="sp"></div>
+				<div class="t"><span class="spark">✻</span>Claude</div>
+			</div>
+			<div class="board">
+				<div class="col"><h6>To do</h6>
+					<div class="task"><small>TASK-45</small>Export to CSV</div>
+					<div class="task"><small>TASK-46</small>Dark mode for charts</div>
+					<div class="task"><small>TASK-48</small>Onboarding emails</div>
+				</div>
+				<div class="col"><h6>In progress</h6>
+					<div class="task"><small>TASK-42</small>Offline sync for the mobile app</div>
+					<div class="task"><small>TASK-44</small>Faster search</div>
+				</div>
+				<div class="col claude">
+					<header><span class="spark">✻</span> Claude · atlas</header>
+					<div class="chat">
+						<div class="bubble">Start on TASK-44, search is slow on big lists.</div>
+						<div class="tool"><span class="ok">✓</span> Read <code>src/search.ts</code></div>
+						<div class="tool"><span class="ok">✓</span> Edit <code>src/search.ts</code> <span style="margin-left:auto;font:11px var(--mono)"><span style="color:var(--done)">+18</span> <span style="color:var(--accent)">−6</span></span></div>
+						<div class="reply">The list was filtered on every keystroke. I debounced it and added an index: search on 10,000 items now takes 4 ms.</div>
+						<div class="composer">Message Claude… <i></i></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="part" id="install">
+	<div class="wrap">
+		<div class="part-head">
+			<div class="kicker">Install</div>
+			<h2>Two commands, then it starts with your Mac.</h2>
+		</div>
+		<div class="install">
+			<div class="steps">
+				<div class="step"><div><h3>Get Backlog.md</h3><p>The <code>backlog</code> command line, from Homebrew or npm. Your boards stay plain Markdown in each repo.</p></div></div>
+				<div class="step"><div><h3>Clone and install</h3><p>The script starts the hub at every login, builds the Mac app in Applications and opens it.</p></div></div>
+				<div class="step"><div><h3>Open your projects</h3><p>Boards in ~/Projects and ~/Documents show up on their own; add any other folder with the + button.</p></div></div>
+			</div>
+			<div>
+<pre><span class="c"># Backlog.md</span>
+<span class="p">$ </span>brew install backlog-md
+
+<span class="c"># Backlog Hub</span>
+<span class="p">$ </span>git clone https://github.com/corentin-gautier/backlog-hub.git
+<span class="p">$ </span>cd backlog-hub && ./install.sh</pre>
+				<p class="req">Needs <a href="https://nodejs.org">Node</a> 20+ and the Xcode Command Line Tools (<code>xcode-select --install</code>). For Claude Code, the <code>claude</code> CLI, signed in.</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="end">
+	<div class="wrap">
+		<img src="icon.svg" alt="">
+		<h2>Your projects, at a glance.</h2>
+		<div class="ctas" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+			<a class="btn primary" href="#install">Install on your Mac</a>
+			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View on GitHub</a>
+		</div>
+	</div>
+</section>
+<footer>
+	<div class="wrap">
+		<span>Backlog Hub · MIT licence</span>
+		<span>Built on <a href="https://github.com/MrLesk/Backlog.md">Backlog.md</a>. Not affiliated with Backlog.md or Anthropic.</span>
+	</div>
+</footer>
+</body>
+</html>
