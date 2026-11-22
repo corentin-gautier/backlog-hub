@@ -37,7 +37,7 @@ git clone https://github.com/corentin-gautier/backlog-hub.git && cd backlog-hub
 npm run app             # the desktop app on this checkout (it uses the server above when it runs)
 ```
 
-Build the installers with `scripts/release.sh` (see its header: signing, notarization, `--publish`). Changes are listed in [CHANGELOG.md](CHANGELOG.md); the README's screenshots come from `scripts/screenshots.sh` (demo projects).
+Releases: `npm run release` takes the next version from the [Conventional Commits](https://www.conventionalcommits.org) since the last tag, writes its [CHANGELOG.md](CHANGELOG.md) section, builds, tags and publishes (`npm run release:dry` shows what it would do; `scripts/release.sh` header for the rest); the README's screenshots come from `scripts/screenshots.sh` (demo projects).
 
 ## Optional: the Backlog.md fork
 

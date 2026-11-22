@@ -28,7 +28,11 @@ Electron, macOS and Windows: `electron/main.js` runs `server.js` in the app's No
 - Closing the window hides it (Dock icon, or the tray on Windows, brings it back). Opens at login from the first run in Applications (menu: Open at Login). Size and place remembered (`settings.json` in the app's data folder).
 - Links outside localhost open in the default browser.
 - Encrypted docs: macOS only (`vault.js` reports them unavailable elsewhere).
-- Build: `scripts/release.sh` (header lists the modes): icons, tools, `electron-builder` (config in `package.json`), notarization with the `backlog-hub` notarytool keychain profile, `--publish` for a GitHub release. Output in `dist/`.
+- Build: `scripts/release.sh` (header lists the modes): icons, tools, `electron-builder` (config in `package.json`), notarization with the `backlog-hub` notarytool keychain profile. Output in `dist/`.
+
+## Releases
+
+`npm run release` (`scripts/release.sh --release`), from a clean `main`: `scripts/changelog.mjs` reads the Conventional Commits since the last `v*` tag (breaking: major, minor before 1.0; `feat`: minor; `fix`, `perf`: patch; other types: no release) and writes the version's CHANGELOG.md section (with commit links); `npm version` sets it; then the build, commit `chore(release): vX.Y.Z`, tag, push, a GitHub release with that section as notes, and the site republished. A failed build undoes the version and changelog. `npm run release:dry` prints the next version and notes; `--upload` retries the publishing from `dist/`.
 
 ## Project list
 
