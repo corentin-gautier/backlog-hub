@@ -3,19 +3,24 @@
 # `backlog` command, in place of Homebrew's (kept, unlinked and pinned: `brew link backlog-md`
 # brings it back).
 #   scripts/backlog-fork.sh           build and link
-#   scripts/backlog-fork.sh --update  rebase the fork on upstream's main first
+#   scripts/backlog-fork.sh --update  rebase the fork on upstream's main first (and push it)
 set -e
 FORK=${BACKLOG_FORK:-$HOME/Projects/Backlog.md}
 BRANCH=backlogs
 LINK=/opt/homebrew/bin/backlog
 
-[[ -d $FORK ]] || git clone https://github.com/MrLesk/Backlog.md.git $FORK
+if [[ ! -d $FORK ]]; then
+	git clone -q -b $BRANCH https://github.com/corentin-gautier/Backlog.md.git $FORK
+	git -C $FORK remote rename origin fork
+	git -C $FORK remote add origin https://github.com/MrLesk/Backlog.md.git
+fi
 cd $FORK
 git rev-parse --verify -q $BRANCH >/dev/null || { echo "No '$BRANCH' branch in $FORK"; exit 1; }
 git checkout -q $BRANCH
 if [[ $1 == --update ]]; then
 	git fetch -q origin
 	git rebase origin/main || { echo "Conflicts: fix them in $FORK, 'git rebase --continue', then run this again."; exit 1; }
+	git push -q --force-with-lease fork $BRANCH
 fi
 bun install --silent
 bun run build >/dev/null

@@ -4,7 +4,7 @@ title: "Backlog.md fork"
 type: guide
 ---
 
-Backlog.md is a compiled binary, so what Backlogs changes in the boards lives in a fork: `~/Projects/Backlog.md`, branch `backlogs`, on top of upstream's `main` (https://github.com/MrLesk/Backlog.md). Its build is the `backlog` command (`/opt/homebrew/bin/backlog` links to `dist/backlog`); Homebrew's `backlog-md` stays installed, unlinked and pinned.
+Backlog.md is a compiled binary, so what Backlogs changes in the boards lives in a fork: https://github.com/corentin-gautier/Backlog.md, branch `backlogs` (its default), on top of upstream's `main` (https://github.com/MrLesk/Backlog.md). Local clone: `~/Projects/Backlog.md`, remotes `origin` (upstream) and `fork`. Its build is the `backlog` command (`/opt/homebrew/bin/backlog` links to `dist/backlog`); Homebrew's `backlog-md` stays installed, unlinked and pinned.
 
 ## What the fork changes
 
@@ -17,6 +17,7 @@ Backlog.md is a compiled binary, so what Backlogs changes in the boards lives in
 ## Build and update
 
 - `scripts/backlog-fork.sh`: builds the fork and links it as `backlog`.
-- `scripts/backlog-fork.sh --update`: rebases the fork on upstream's `main` first, then builds.
+- `scripts/backlog-fork.sh --update`: rebases the fork on upstream's `main` and pushes it first, then builds.
+- Without the clone, the script makes it from the fork.
 - Then restart the boards: close their tabs, or restart Backlogs.
 - Needs Bun (`brew install oven-sh/bun/bun`).
