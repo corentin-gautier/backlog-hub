@@ -1,10 +1,10 @@
 ---
 id: TASK-2
 title: Publish on GitHub as open source
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-22T10:09:51Z'
-updated_date: '2026-11-22T10:15:19Z'
+updated_date: '2026-11-22T10:18:01Z'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -24,5 +24,5 @@ Backlog Hub is useful beyond this Mac: publish it as an open source repo.
 - [x] #4 Install story for others: the Backlog.md fork requirement explained in README, or the app works with upstream backlog (features degrade)
 - [x] #5 LICENSE (MIT) and package.json without private: true
 - [x] #6 Claude-related files stay out of the repo; history checked for secrets
-- [ ] #7 Repo created on GitHub and pushed
+- [x] #7 Repo created on GitHub and pushed
 <!-- AC:END -->
