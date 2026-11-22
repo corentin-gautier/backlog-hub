@@ -123,7 +123,7 @@ async function persist() {
 	render();
 }
 
-// ---- drag and drop: cards between and within sections, sections, tabs ----
+// ---- drag and drop: cards between and within sections, sections (tabs: reorderable, below) ----
 
 let dragged = null; // the element being moved: a card, a section or a tab
 
@@ -144,12 +144,7 @@ function draggable(el, kind) {
 		document.body.classList.remove('moving-card');
 		document.querySelectorAll('.target').forEach((t) => t.classList.remove('target'));
 		dragged = null;
-		if (kind === 'tab') {
-			open = [...document.querySelectorAll('#tabs [data-port]')].map((t) => t.dataset.port);
-			store('open', open);
-		} else {
-			readLayout();
-		}
+		readLayout();
 	});
 }
 
@@ -177,11 +172,6 @@ function over(event) {
 		event.preventDefault();
 		const item = event.target.closest('.group');
 		if (item && item.dataset.cat) place(event, item, true);
-	} else if (kind === 'tab') {
-		const item = event.target.closest('#tabs [data-port]');
-		if (!event.target.closest('#tabs')) return;
-		event.preventDefault();
-		place(event, item);
 	}
 }
 
@@ -200,7 +190,7 @@ document.addEventListener('drop', (event) => dragged && event.preventDefault());
 function tab(p) {
 	const el = document.createElement('button');
 	el.dataset.port = p.port;
-	el.onclick = () => show(String(p.port));
+	el.onclick = () => !el.dataset.moved && show(String(p.port));
 	const dot = document.createElement('span');
 	dot.className = 'dot';
 	dot.textContent = p.name[0].toUpperCase();
@@ -217,8 +207,68 @@ function tab(p) {
 	el.onmousedown = (event) => event.button === 1 && event.preventDefault();
 	el.onauxclick = (event) => event.button === 1 && closeTab(String(p.port));
 	el.append(dot, p.name, close);
-	draggable(el, 'tab');
+	reorderable(el);
 	return el;
+}
+
+// Tabs move with the pointer rather than HTML drag and drop: WebKit (Safari, the Mac app) never drags a <button>.
+// The held tab follows the pointer; the others slide out of its way. Its place is read from the tabs' layout
+// (offsetLeft, which ignores the transforms of the animation), so tabs of any width never swap back and forth.
+const SLIDE = 'transform .18s cubic-bezier(.2, .8, .2, 1)';
+function reorderable(el) {
+	el.addEventListener('pointerdown', (down) => {
+		if (down.button !== 0 || down.target.closest('.close')) return;
+		const start = el.offsetLeft;
+		let moving = false;
+		el.setPointerCapture(down.pointerId); // keeps the moves when the pointer leaves the bar (over a board's frame)
+		const offset = (event) => event.clientX - down.clientX - (el.offsetLeft - start); // the held tab's shift from its slot
+		const move = (event) => {
+			if (!moving && Math.abs(event.clientX - down.clientX) < 5) return;
+			if (!moving) {
+				moving = true;
+				el.classList.add('lifted');
+				el.style.transition = 'none';
+			}
+			// Its slot: after every other tab whose middle its own middle has passed.
+			const centre = el.offsetLeft + offset(event) + el.offsetWidth / 2;
+			const others = [...document.querySelectorAll('#tabs [data-port]')].filter((t) => t !== el);
+			const index = others.filter((t) => t.offsetLeft + t.offsetWidth / 2 < centre).length;
+			const next = others[index] || null;
+			if (el.nextElementSibling !== next) {
+				const before = new Map(others.map((t) => [t, t.getBoundingClientRect().left]));
+				if (next) next.before(el);
+				else others.at(-1).after(el);
+				for (const t of others) {
+					t.style.transition = 'none';
+					t.style.transform = '';
+					const dx = before.get(t) - t.getBoundingClientRect().left;
+					if (!dx) continue;
+					t.style.transform = `translateX(${dx}px)`;
+					t.offsetWidth; // apply the start position before animating back to the slot
+					t.style.transition = SLIDE;
+					t.style.transform = '';
+				}
+			}
+			el.style.transform = `translateX(${offset(event)}px)`;
+		};
+		const up = () => {
+			el.removeEventListener('pointermove', move);
+			el.removeEventListener('pointerup', up);
+			el.removeEventListener('pointercancel', up);
+			if (!moving) return;
+			// The held tab settles into its slot.
+			el.style.transition = SLIDE;
+			el.style.transform = '';
+			setTimeout(() => (el.classList.remove('lifted'), (el.style.transition = '')), 200);
+			el.dataset.moved = 1; // the click that ends the move does not open the tab
+			setTimeout(() => delete el.dataset.moved);
+			open = [...document.querySelectorAll('#tabs [data-port]')].map((t) => t.dataset.port);
+			store('open', open);
+		};
+		el.addEventListener('pointermove', move);
+		el.addEventListener('pointerup', up);
+		el.addEventListener('pointercancel', up);
+	});
 }
 
 // ---- the row above the projects: Coming up, In progress, the general chat ----

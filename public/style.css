@@ -303,7 +303,9 @@ body.moving-card .group.empty { display: block; } /* a drop target while a card 
 .card.dragging { background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1.5px dashed var(--accent); box-shadow: none; transform: none; }
 .card.dragging > * { visibility: hidden; }
 .group.dragging { opacity: .35; }
-nav button.dragging { opacity: .4; }
+#tabs [data-port] { position: relative; }
+#tabs [data-port].lifted { z-index: 1; cursor: grabbing; user-select: none; }
+#tabs [data-port].lifted:not(.on) { color: var(--text); background: var(--bar-hover); box-shadow: 0 4px 12px rgb(0 0 0 / .12); }
 
 .card { position: relative; display: block; width: 100%; padding: 20px; background: var(--card); border: 1px solid var(--card-line); border-radius: var(--radius); box-shadow: var(--shadow); color: inherit; text-align: left; font: inherit; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
 .card:hover { border-color: var(--dash); box-shadow: 0 6px 20px rgba(0, 0, 0, .06); transform: translateY(-1px); }
