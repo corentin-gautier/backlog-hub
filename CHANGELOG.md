@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-11-22
+
+### Fixes
+
+- **vault:** a doc quoting the marker is not taken for encrypted ([6983ed5](https://github.com/corentin-gautier/backlog-hub/commit/6983ed5))
+- **scripts:** stop the running boards after building the fork ([6344e93](https://github.com/corentin-gautier/backlog-hub/commit/6344e93))
+- open the boards' external links in the browser ([9538dd5](https://github.com/corentin-gautier/backlog-hub/commit/9538dd5))
+
 ## 0.2.0 — 2026-11-22
 
 ### Features

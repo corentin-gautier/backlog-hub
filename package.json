@@ -23,7 +23,7 @@
 		"electron-builder": "^26.18.0"
 	},
 	"main": "electron/main.js",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"author": "Corentin Gautier",
 	"homepage": "https://corentingautier.dev/backlog-hub/",
 	"build": {
