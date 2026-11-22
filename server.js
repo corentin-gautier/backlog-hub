@@ -96,7 +96,8 @@ function arrange({ categories, order }) {
 }
 
 function state() {
-	return { categories: read().categories, projects: describe(load()) };
+	const list = load();
+	return { categories: read().categories, projects: describe(list), alerts: alerts(list) };
 }
 
 function counts(dir) {
@@ -111,6 +112,90 @@ function counts(dir) {
 		else result.todo++;
 	}
 	return result;
+}
+
+// ---- alerts: open tasks with a due date, and recurring ones ----
+
+// The fields read from a task file's front matter.
+function frontMatter(text) {
+	const head = (text.match(/^---\n([\s\S]*?)\n---/) || [])[1] || '';
+	const field = (key) => {
+		const value = (head.match(new RegExp(`^${key}:[ \\t]*(.*)$`, 'm')) || [])[1]?.trim() || '';
+		return value.replace(/^'(.*)'$/, (_, inner) => inner.replace(/''/g, "'")).replace(/^"(.*)"$/, '$1');
+	};
+	const block = (head.match(/^labels:[ \t]*\n((?:[ \t]+-.*\n?)*)/m) || [])[1] || '';
+	const inline = (head.match(/^labels:[ \t]*\[(.*)\]/m) || [])[1] || '';
+	const labels = [...block.matchAll(/-\s*(.+)/g)].map((m) => m[1]).concat(inline.split(','))
+		.map((l) => l.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+	return { id: field('id'), title: field('title'), status: field('status'), due: field('due_date').slice(0, 10), labels };
+}
+
+function tasksOf(dir) {
+	const folder = path.join(dir, 'backlog/tasks');
+	if (!fs.existsSync(folder)) return [];
+	return fs.readdirSync(folder).filter((f) => f.endsWith('.md')).map((f) => ({ file: path.join(folder, f), ...frontMatter(fs.readFileSync(path.join(folder, f), 'utf8')) }));
+}
+
+// Recurrence labels and the months between two due dates.
+const EVERY = { mensuel: 1, trimestriel: 3, annuel: 12 };
+const every = (task) => task.labels.find((l) => EVERY[l.toLowerCase()]);
+
+// n months later, on the given day of the month (the month's last day when it has fewer).
+function addMonths(date, n, day) {
+	const [y, m] = date.split('-').map(Number);
+	const target = new Date(Date.UTC(y, m - 1 + n, 1));
+	const days = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+	target.setUTCDate(Math.min(day, days));
+	return target.toISOString().slice(0, 10);
+}
+
+// The day of the month a recurring task falls on: the latest one among its occurrences,
+// so a deadline cut short by February (31 → 28) comes back to the 31st.
+function anchorDay(dir, task) {
+	const folders = ['backlog/tasks', 'backlog/completed', 'backlog/archive/tasks'].map((f) => path.join(dir, f)).filter((f) => fs.existsSync(f));
+	const days = folders.flatMap((folder) => fs.readdirSync(folder).filter((f) => f.endsWith('.md')).map((f) => frontMatter(fs.readFileSync(path.join(folder, f), 'utf8'))))
+		.filter((t) => t.title === task.title && /^\d{4}-\d{2}-\d{2}$/.test(t.due))
+		.map((t) => Number(t.due.slice(8)));
+	return Math.max(Number(task.due.slice(8)), ...days);
+}
+
+function run(args, cwd) {
+	return new Promise((resolve, reject) => execFile('backlog', args, { cwd }, (error, out) => (error ? reject(error) : resolve(out))));
+}
+
+// A recurring task marked Done gets its next occurrence; the done one loses its label, so it happens once.
+const recurring = new Set(); // dirs being handled
+async function recur(dir) {
+	if (recurring.has(dir)) return;
+	recurring.add(dir);
+	try {
+		for (const task of tasksOf(dir)) {
+			const label = every(task);
+			if (task.status !== 'Done' || !label || !/^\d{4}-\d{2}-\d{2}$/.test(task.due)) continue;
+			const text = fs.readFileSync(task.file, 'utf8');
+			const description = (text.match(/<!-- SECTION:DESCRIPTION:BEGIN -->\n?([\s\S]*?)\n?<!-- SECTION:DESCRIPTION:END -->/) || [])[1] || '';
+			const priority = (text.match(/^priority:\s*(\w+)/m) || [])[1];
+			const args = ['task', 'create', task.title, '--due-date', addMonths(task.due, EVERY[label.toLowerCase()], anchorDay(dir, task)), '--labels', task.labels.join(','), '--plain'];
+			if (description.trim()) args.push('--description', description.trim());
+			if (priority) args.push('--priority', priority);
+			await run(args, dir);
+			await run(['task', 'edit', task.id, '--remove-label', label], dir);
+		}
+	} catch (error) {
+		console.error('recur', dir, error.message);
+	} finally {
+		recurring.delete(dir);
+	}
+}
+
+function alerts(list) {
+	return list.flatMap((p) => {
+		const config = configOf(p.dir);
+		if (!config) return [];
+		return tasksOf(p.dir)
+			.filter((t) => t.status !== 'Done' && /^\d{4}-\d{2}-\d{2}$/.test(t.due))
+			.map((t) => ({ port: p.port, project: config.name, id: t.id, title: t.title, due: t.due, every: every(t) || null }));
+	}).sort((a, b) => a.due.localeCompare(b.due) || a.project.localeCompare(b.project));
 }
 
 function describe(list) {
@@ -221,7 +306,10 @@ async function api(req, res) {
 		return send(res, 200, state());
 	}
 	if (resource !== 'projects') return send(res, 404, {});
-	if (req.method === 'GET' && !id) return send(res, 200, state());
+	if (req.method === 'GET' && !id) {
+		await Promise.all(list.map((p) => recur(p.dir)));
+		return send(res, 200, state());
+	}
 	if (req.method === 'POST' && !id) return send(res, 200, { port: await add(), ...state() });
 	if (!project) return send(res, 404, {});
 	if (req.method === 'POST' && action === 'start') return send(res, 200, { url: await start(project) });

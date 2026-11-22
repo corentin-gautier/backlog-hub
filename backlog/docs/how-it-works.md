@@ -47,11 +47,17 @@ type: specification
 
 Read from `backlog/tasks/*.md` `status:` lines: `Done`, `In Progress`, anything else counts as to do.
 
+## Alerts and recurring tasks
+
+- Alerts: every task in `backlog/tasks/` whose status isn't `Done` and that has a `due_date`, across projects, sorted by date (`alerts` in `GET /api/projects`).
+- Recurring task: a label `mensuel`, `trimestriel` or `annuel` and a due date. On each `GET /api/projects`, a Done one gets its next occurrence through the CLI (`backlog task create`: same title, description, labels and priority, due 1, 3 or 12 months later), then loses its recurrence label (`backlog task edit --remove-label`), so it happens once.
+- Day of the month: the latest one among the tasks with the same title (in `tasks/`, `completed/` and `archive/tasks/`), cut to the month's length, so 31 Jan → 28 Feb → 31 Mar and 28 → 28.
+
 ## API
 
 | Request | Does |
 | --- | --- |
-| `GET /api/projects` | `{ categories, projects }`, projects with name, place (`~`-relative), counts |
+| `GET /api/projects` | Creates due recurring tasks, then `{ categories, projects, alerts }`: projects with name, place (`~`-relative), counts; alerts `[{ port, project, id, title, due, every }]` |
 | `POST /api/projects` | Folder dialog, add; returns `{ port, categories, projects }` |
 | `PUT /api/layout` | `{ categories, order: [{ port, category }] }`: saves categories and order |
 | `POST /api/projects/<port>/start` | Starts the board; returns `{ url }` |

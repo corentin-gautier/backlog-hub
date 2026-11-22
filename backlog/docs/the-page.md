@@ -9,13 +9,21 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Layout
 
 - Top bar: a Home tab ("Accueil"), one tab per open project, and a + button to add a project.
-- Home: today's date (French format), "Mes projets", then a section per category with its cards, then "Sans catégorie" (projects without one, and the "Ajouter un projet" card), then a "+ Nouvelle catégorie" button.
+- Home: today's date (French format), "Mes projets", "À ne pas oublier" (below), then a section per category with its cards, then "Sans catégorie" (projects without one, and the "Ajouter un projet" card), then a "+ Nouvelle catégorie" button.
 
 ## Categories and order
 
 - Drag a card to reorder it or move it to another section (its category changes); drag a section's heading to reorder the categories; drag a tab to reorder the tabs.
 - Hovering a heading shows Renommer (edit in place, Enter or click away to save, Escape to cancel) and Supprimer (its projects go to "Sans catégorie").
 - Categories and the cards' order are saved in `projects.json` (PUT `/api/layout`), so every browser shows the same; the tabs' order is per browser.
+
+## À ne pas oublier
+
+- Every open task with a `due_date`, from every project, soonest first; hidden when there are none.
+- A row: date block, title, a badge for a recurring task (chaque mois / trimestre / année), the project's dot, name and task id, then how far off it is.
+- Orange at 7 days or less, red once past.
+- The first 5 rows, then "Voir les N suivantes" / "Voir moins".
+- Clicking a row opens the project's tab on the task (`/tasks/<id>` in the board).
 
 ## Cards
 

@@ -167,6 +167,33 @@ body.resizing iframe { pointer-events: none; }
 #home.on { display: block; }
 #today { color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
 #home h1 { font-size: 24px; font-weight: 700; margin: 4px 0 32px; }
+
+/* "À ne pas oublier": open tasks with a due date, soonest first. */
+#alerts h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+#alerts .count { font-size: 12px; background: var(--pill); color: var(--pill-text); border-radius: 99px; padding: 1px 8px; letter-spacing: 0; }
+.alerts { background: var(--card); border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); margin-bottom: 40px; overflow: hidden; }
+.alert { display: flex; align-items: center; gap: 14px; padding: 11px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+.alert:first-child { border-top: 0; }
+.alert:hover { background: var(--hover); }
+.alert .date { flex: none; width: 46px; text-align: center; line-height: 1.1; border-radius: 7px; padding: 5px 0; background: var(--bar); color: var(--muted); }
+.alert .date b { display: block; font-size: 17px; color: var(--text); }
+.alert .date span { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.alert .what { flex: 1; min-width: 0; }
+.alert .title { font-weight: 500; }
+.alert .sub { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 12.5px; line-height: 16px; margin-top: 2px; }
+.alert .sub .dot { width: 14px; height: 14px; border-radius: 4px; font-size: 9px; line-height: 1; font-style: normal; }
+.alert .when { flex: none; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.alert .every { font-size: 11px; color: var(--accent); background: var(--accent-soft); border-radius: 99px; padding: 1px 7px; margin-left: 6px; font-weight: 500; }
+.alert.soon .date { background: color-mix(in oklch, var(--doing) 25%, transparent); }
+.alert.soon .date b, .alert.soon .date span, .alert.soon .when { color: oklch(0.554 0.135 66.442); }
+.alert.late .date { background: color-mix(in oklch, oklch(0.637 0.237 25.331) 18%, transparent); }
+.alert.late .date b, .alert.late .date span, .alert.late .when { color: oklch(0.577 0.245 27.325); }
+@media (prefers-color-scheme: dark) {
+	.alert.soon .date b, .alert.soon .date span, .alert.soon .when { color: oklch(0.852 0.199 91.936); }
+	.alert.late .date b, .alert.late .date span, .alert.late .when { color: oklch(0.704 0.191 22.216); }
+}
+.alerts .more { display: block; width: 100%; padding: 9px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; }
+.alerts .more:hover { color: var(--text); background: var(--hover); }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; min-height: 60px; border-radius: 16px; outline: 1.5px solid transparent; outline-offset: 8px; transition: outline-color .15s; }
 
 .group { margin-bottom: 36px; }
@@ -209,3 +236,5 @@ nav button.dragging { opacity: .4; }
 .card.new { display: grid; place-items: center; min-height: 128px; background: none; border: 1.5px dashed var(--dash); box-shadow: none; color: var(--faint); }
 .card.new:hover { color: var(--text); transform: none; }
 .cards:empty::before { content: "Glisser un projet ici"; grid-column: 1 / -1; display: grid; place-items: center; min-height: 60px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--faint); font-size: 13px; }
+
+/* Encrypted docs: the padlock's menu, under the top bar on the right. */

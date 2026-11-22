@@ -2,6 +2,7 @@
 // kept so it stays where it was left.
 const frames = {};
 let projects = [];
+let alerts = [];
 let categories = [];
 let current = '';
 
@@ -12,6 +13,7 @@ const api = (url, method = 'GET', body) =>
 function take(state) {
 	categories = state.categories;
 	projects = state.projects;
+	alerts = state.alerts || [];
 }
 
 // Stored per browser: the open tabs and the one shown.
@@ -34,6 +36,7 @@ function render() {
 		...categories.map((name) => group(name, projects.filter((p) => p.category === name))),
 		group('', projects.filter((p) => !known(p)))
 	);
+	renderAlerts();
 	highlight();
 }
 
@@ -202,6 +205,76 @@ function tab(p) {
 	return el;
 }
 
+// ---- "À ne pas oublier": open tasks with a due date, every project ----
+
+const SHOWN = 5;
+let allAlerts = false;
+const EVERY = { mensuel: 'chaque mois', trimestriel: 'chaque trimestre', annuel: 'chaque année' };
+
+function daysUntil(date) {
+	const [y, m, d] = date.split('-').map(Number);
+	const now = new Date();
+	return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+}
+
+function when(days) {
+	if (days === 0) return "aujourd'hui";
+	if (days === 1) return 'demain';
+	if (days === -1) return 'hier';
+	if (days < 0) return `en retard de ${-days} jours`;
+	if (days < 60) return `dans ${days} jours`;
+	return `dans ${Math.round(days / 30.4)} mois`;
+}
+
+function renderAlerts() {
+	const box = $('#alerts');
+	box.replaceChildren();
+	if (!alerts.length) return;
+	const head = document.createElement('h2');
+	head.innerHTML = 'À ne pas oublier <span class="count"></span>';
+	head.querySelector('.count').textContent = alerts.length;
+	const list = document.createElement('div');
+	list.className = 'alerts';
+	list.append(...(allAlerts ? alerts : alerts.slice(0, SHOWN)).map(alertRow));
+	if (alerts.length > SHOWN) {
+		const more = document.createElement('button');
+		more.className = 'more';
+		const rest = alerts.length - SHOWN;
+		more.textContent = allAlerts ? 'Voir moins' : rest > 1 ? `Voir les ${rest} suivantes` : 'Voir la suivante';
+		more.onclick = () => {
+			allAlerts = !allAlerts;
+			renderAlerts();
+		};
+		list.append(more);
+	}
+	box.append(head, list);
+}
+
+function alertRow(a) {
+	const days = daysUntil(a.due);
+	const date = new Date(`${a.due}T12:00`);
+	const el = document.createElement('div');
+	el.className = 'alert' + (days < 0 ? ' late' : days <= 7 ? ' soon' : '');
+	el.innerHTML = `<div class="date"><b></b><span></span></div><div class="what"><div class="title"></div><div class="sub"><i class="dot"></i></div></div><div class="when"></div>`;
+	el.querySelector('.date b').textContent = date.getDate();
+	el.querySelector('.date span').textContent = date.toLocaleDateString('fr-FR', { month: 'short' });
+	el.querySelector('.date').title = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+	el.querySelector('.title').textContent = a.title;
+	if (a.every) {
+		const tag = document.createElement('span');
+		tag.className = 'every';
+		tag.textContent = EVERY[a.every.toLowerCase()];
+		el.querySelector('.title').append(tag);
+	}
+	const dot = el.querySelector('.dot');
+	dot.textContent = a.project[0].toUpperCase();
+	dot.style.background = colour(a.project);
+	dot.after(`${a.project} · ${a.id}`);
+	el.querySelector('.when').textContent = when(days);
+	el.onclick = () => show(String(a.port), `tasks/${a.id}`);
+	return el;
+}
+
 function closeTab(port) {
 	const index = open.indexOf(port);
 	open.splice(index, 1);
@@ -268,7 +341,8 @@ function highlight() {
 	$('#claude').classList.toggle('on', Claude.visible(current));
 }
 
-async function show(port) {
+// Shows a project's tab (Home for ''), at a page of its board when given one.
+async function show(port, page) {
 	current = port;
 	store('tab', port);
 	if (port && !open.includes(port)) {
@@ -286,7 +360,10 @@ async function show(port) {
 		document.body.append(pane);
 		if (Claude.wasShown(port)) Claude.toggle(port, true);
 		highlight();
-		frame.src = (await api(`projects/${port}/start`, 'POST')).url;
+		frame.src = (await api(`projects/${port}/start`, 'POST')).url + (page ? `/${page}` : '');
+	} else if (page) {
+		const frame = frames[port].querySelector('iframe');
+		frame.src = new URL(`/${page}`, frame.src).href;
 	}
 }
 
