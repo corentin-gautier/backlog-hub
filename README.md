@@ -1,6 +1,6 @@
 # Backlog Hub
 
-A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on your computer: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none). Site: https://corentingautier.dev/backlog-hub/
+A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on your computer: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none). Site: https://corentingautier.dev/backlog-hub/ · [Ko-fi](https://ko-fi.com/corentingautier)
 
 - **Projects**: cards grouped in categories you name and order by drag and drop.
 - **Coming up**: open tasks with a due date, across every project, soonest first. A task labelled `monthly`, `quarterly` or `yearly` comes back once done.
@@ -59,6 +59,12 @@ Homebrew's `backlog-md` is kept, unlinked: `brew link backlog-md` brings it back
 - Claude Code panel: a chat with Claude Code in the project folder (the home folder for the general chat), run by `claude.js` with the Agent SDK and streamed to the page over a WebSocket. It stops when the project's tab is closed and picks up the same conversation next time.
 - Log: `~/Library/Logs/Backlogs.log`. Run by hand: `npm install && node server.js`.
 - Icons: `rsvg-convert -w 512 public/icon.svg -o public/icon-512.png` (and 192).
+
+## Support
+
+If Backlog Hub is useful to you, you can support my work with a small donation on [Ko-fi](https://ko-fi.com/corentingautier). Thank you!
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/corentingautier)
 
 ## License
 
