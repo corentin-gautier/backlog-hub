@@ -241,6 +241,7 @@ const Claude = (() => {
 			case 'error': return append(panel, h('div', 'error', event.text));
 			case 'busy': return setBusy(panel, event.value);
 			case 'info': return info(panel, event);
+			case 'commands': return setCommands(panel, event.list);
 			case 'reset': {
 				panel.log.replaceChildren(panel.typing);
 				panel.tools = {};
@@ -251,9 +252,68 @@ const Claude = (() => {
 				setBusy(panel, event.busy);
 				if (event.draft) setDraft(panel, event.draft);
 				info(panel, event);
+				setCommands(panel, event.commands || []);
 				panel.log.scrollTop = panel.log.scrollHeight;
 			}
 		}
+	}
+
+	// ---- slash commands ----
+
+	// Handled by the page: a new conversation and the history.
+	const LOCAL = {
+		clear: { description: 'Nouvelle conversation', run: (panel) => send(panel, { type: 'open' }) },
+		resume: { description: 'Reprendre une conversation précédente', run: (panel) => history(panel) },
+	};
+
+	function setCommands(panel, list) {
+		const local = Object.entries(LOCAL).map(([name, c]) => ({ name, description: c.description, hint: '' }));
+		panel.commands = [...local, ...list.filter((c) => !LOCAL[c.name])];
+		slashMenu(panel);
+	}
+
+	// The menu over the composer while the message is a lone "/word".
+	function slashMenu(panel) {
+		const query = (panel.input.value.match(/^\/(\S*)$/) || [])[1];
+		const box = panel.slash;
+		if (query == null) return (box.hidden = true, (panel.matches = []));
+		const q = query.toLowerCase();
+		const starts = panel.commands.filter((c) => c.name.toLowerCase().startsWith(q));
+		const has = panel.commands.filter((c) => !starts.includes(c) && c.name.toLowerCase().includes(q));
+		panel.matches = [...starts, ...has];
+		panel.pick = Math.min(panel.pick || 0, Math.max(panel.matches.length - 1, 0));
+		box.hidden = !panel.matches.length;
+		box.replaceChildren(...panel.matches.map((c, i) => {
+			const row = h('div', i === panel.pick ? 'cmd on' : 'cmd');
+			row.append(h('b', '', `/${c.name}`), c.hint ? h('span', 'hint', c.hint) : '', h('span', 'desc', c.description));
+			row.onmousedown = (event) => {
+				event.preventDefault();
+				choose(panel, c, false);
+			};
+			return row;
+		}));
+		box.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+	}
+
+	// Picks a command: completes it, or sends it right away when it takes no argument (Enter).
+	function choose(panel, command, run) {
+		panel.input.value = `/${command.name} `;
+		panel.pick = 0;
+		if (run && !command.hint) return panel.el.querySelector('form').requestSubmit();
+		panel.input.dispatchEvent(new Event('input'));
+		panel.input.focus();
+	}
+
+	function slashKeys(panel, event) {
+		if (panel.slash.hidden) return false;
+		const n = panel.matches.length;
+		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') panel.pick = (panel.pick + (event.key === 'ArrowDown' ? 1 : n - 1)) % n;
+		else if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') return event.preventDefault(), choose(panel, panel.matches[panel.pick], event.key === 'Enter'), true;
+		else if (event.key === 'Escape') panel.slash.hidden = true;
+		else return false;
+		event.preventDefault();
+		if (!panel.slash.hidden) slashMenu(panel);
+		return true;
 	}
 
 	// ---- panel ----
@@ -285,16 +345,17 @@ const Claude = (() => {
 			<div class="history" hidden></div>
 			<div class="log"><div class="typing" hidden><span class="spark">✻</span><span>Claude travaille…</span></div></div>
 			<form class="composer">
-				<textarea rows="1" placeholder="Écris à Claude… (↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
+				<div class="slash" hidden></div>
+				<textarea rows="1" placeholder="Écris à Claude… (/ commandes, ↵ envoyer, ⇧↵ nouvelle ligne)"></textarea>
 				<div class="bar"><span class="chip model" hidden></span><button type="button" class="chip mode" title="Mode d’autorisation (cliquer pour changer)"></button><button class="send idle"></button></div>
 			</form>`;
 		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
 		frames[port].append(el);
 
 		const panel = (panels[port] = {
-			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false,
+			el, port, dir: project?.dir || '', place: project?.place || '', tools: {}, busy: false, commands: [], matches: [], pick: 0,
 			log: el.querySelector('.log'), typing: el.querySelector('.typing'), input: el.querySelector('textarea'),
-			sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
+			slash: el.querySelector('.slash'), sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
 		});
 		openLinks(panel);
 		const { input } = panel;
@@ -303,8 +364,13 @@ const Claude = (() => {
 			input.style.height = `${Math.min(input.scrollHeight, 220)}px`;
 			sendState(panel);
 		};
-		input.oninput = grow;
+		input.oninput = () => {
+			grow();
+			slashMenu(panel);
+		};
+		input.onblur = () => (panel.slash.hidden = true);
 		input.onkeydown = (event) => {
+			if (slashKeys(panel, event)) return;
 			if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
 				event.preventDefault();
 				el.querySelector('form').requestSubmit();
@@ -315,9 +381,12 @@ const Claude = (() => {
 			event.preventDefault();
 			const text = input.value.trim();
 			if (!text) return panel.busy && send(panel, { type: 'stop' });
-			send(panel, { type: 'send', text });
+			const local = LOCAL[(text.match(/^\/(\S+)$/) || [])[1]];
+			if (local) local.run(panel);
+			else send(panel, { type: 'send', text });
 			input.value = '';
 			grow();
+			slashMenu(panel);
 		};
 		panel.modeChip.onclick = () => send(panel, { type: 'mode', mode: CYCLE[(CYCLE.indexOf(panel.mode) + 1) % CYCLE.length] });
 

@@ -23,7 +23,13 @@ const chats = new Map(); // port -> chat
 // ---- SDK messages -> page events ----
 // { type: 'user', text } { type: 'text', text } { type: 'delta', text } { type: 'tool', id, name, input }
 // { type: 'result', id, error, text } { type: 'ask', id, name, input, title } { type: 'answered', id }
-// { type: 'busy', value } { type: 'info', model, mode } { type: 'error', text } { type: 'reset', events, ...state }
+// { type: 'busy', value } { type: 'info', model, mode } { type: 'commands', list } { type: 'error', text } { type: 'reset', events, ...state }
+
+// A slash command as the transcript keeps it: <command-name>/x</command-name><command-args>y</command-args>.
+const commandOf = (text) => {
+	const name = (text.match(/<command-name>(.*?)<\/command-name>/) || [])[1];
+	return name ? `${name.startsWith('/') ? name : `/${name}`} ${(text.match(/<command-args>([\s\S]*?)<\/command-args>/) || [])[1] || ''}`.trim() : '';
+};
 
 const textOf = (content) => (typeof content === 'string' ? content : (content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n'));
 
@@ -38,7 +44,11 @@ function convert(message) {
 		});
 	}
 	if (message.type === 'user') {
-		if (typeof content === 'string') return message.isSynthetic || content.startsWith('<') ? [] : [{ type: 'user', text: content }];
+		if (typeof content === 'string') {
+			if (message.isSynthetic) return [];
+			if (content.startsWith('<')) return commandOf(content) ? [{ type: 'user', text: commandOf(content) }] : [];
+			return [{ type: 'user', text: content }];
+		}
 		const results = (content || []).filter((b) => b.type === 'tool_result');
 		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000) }));
 		const text = textOf(content);
@@ -57,7 +67,7 @@ function create(project) {
 
 function emit(chat, event) {
 	if (event.type === 'delta') chat.draft += event.text;
-	else if (!['busy', 'info'].includes(event.type)) chat.events.push(event);
+	else if (!['busy', 'info', 'commands'].includes(event.type)) chat.events.push(event);
 	if (event.type === 'text') chat.draft = '';
 	const data = JSON.stringify(event);
 	for (const socket of chat.sockets) if (socket.readyState === 1) socket.send(data);
@@ -69,7 +79,32 @@ function setBusy(chat, value) {
 	emit(chat, { type: 'busy', value });
 }
 
-const snapshot = (chat) => ({ type: 'reset', events: chat.events, draft: chat.draft, busy: chat.busy, mode: chat.mode, model: chat.model, sessionId: chat.sessionId });
+const snapshot = (chat) => ({ type: 'reset', events: chat.events, draft: chat.draft, busy: chat.busy, mode: chat.mode, model: chat.model, sessionId: chat.sessionId, commands: commands.get(chat.project.dir) || [] });
+
+// ---- slash commands ----
+// The project's commands and skills, for the chat's / menu: from the running conversation, else
+// from a short-lived one that only answers the list (~0.3 s).
+const commands = new Map(); // dir -> [{ name, description, hint }]
+
+function setCommands(chat, list) {
+	const clean = list.filter((c) => !c.name.startsWith('_')).map((c) => ({ name: c.name, description: c.description, hint: c.argumentHint || '' }));
+	commands.set(chat.project.dir, clean);
+	emit(chat, { type: 'commands', list: clean });
+}
+
+async function loadCommands(chat) {
+	if (commands.has(chat.project.dir)) return;
+	commands.set(chat.project.dir, []);
+	const { query } = await sdk;
+	const q = query({ prompt: (async function* () { await new Promise(() => {}); })(), options: { cwd: chat.project.dir, systemPrompt: { type: 'preset', preset: 'claude_code' }, persistSession: false, stderr: () => {} } });
+	try {
+		setCommands(chat, await q.supportedCommands());
+	} catch (error) {
+		commands.delete(chat.project.dir);
+	} finally {
+		q.close();
+	}
+}
 
 // The transcript of the remembered conversation, shown before anything is sent.
 async function loadHistory(chat) {
@@ -138,6 +173,9 @@ async function run(chat) {
 				chat.mode = message.permissionMode;
 				if (chat.sessionId !== message.session_id) remember(chat.project.dir, (chat.sessionId = message.session_id));
 				emit(chat, { type: 'info', model: chat.model, mode: chat.mode });
+				q.supportedCommands().then((list) => setCommands(chat, list), () => {});
+			} else if (message.type === 'system' && message.subtype === 'commands_changed') {
+				setCommands(chat, message.commands);
 			} else if (message.type === 'stream_event' && !message.parent_tool_use_id) {
 				const { event } = message;
 				if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') emit(chat, { type: 'delta', text: event.delta.text });
@@ -230,6 +268,7 @@ function attach(server, findProject, origins, dataDir) {
 			await loadHistory(chat);
 			chat.sockets.add(ws);
 			ws.send(JSON.stringify(snapshot(chat)));
+			loadCommands(chat).catch(() => {});
 			ws.on('message', (raw) => {
 				let message;
 				try { message = JSON.parse(raw); } catch (e) { return; }
