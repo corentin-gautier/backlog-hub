@@ -1,9 +1,10 @@
 ---
 id: doc-2
-title: "How it works"
+title: How it works
 type: specification
+created_date: ''
+updated_date: '2026-11-22T10:02:48Z'
 ---
-
 `server.js`, plus `claude.js` for the Claude chat (dependencies: `@anthropic-ai/claude-agent-sdk`, `ws`, and `marked` + `dompurify` served to the page). Serves `public/` on `127.0.0.1:6400` (`BACKLOGS_PORT` to override).
 
 ## Running

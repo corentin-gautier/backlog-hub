@@ -1,9 +1,10 @@
 ---
 id: doc-1
-title: "Home"
+title: Home
 type: readme
+created_date: ''
+updated_date: '2026-11-22T10:06:29Z'
 ---
-
 A local home page for every Backlog.md board on this Mac: a card per project with its task counts, a tab per open project, and a button to add a folder. Install and uninstall: the root README. Needs Node and the `backlog` CLI.
 
 ## The app
