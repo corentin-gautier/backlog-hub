@@ -74,6 +74,9 @@ nav button:hover .close, nav button.on .close { visibility: visible; }
 nav button.on .close { color: inherit; }
 
 nav button[hidden] { display: none; }
+/* In the Mac app (mac/BacklogHub.swift) the window's buttons sit over the bar's left end. */
+.mac-app nav { padding-left: 80px; }
+.mac-app.fullscreen nav { padding-left: 10px; }
 .spark { color: #d97757; }
 
 .pane { flex: 1; min-height: 0; display: none; }

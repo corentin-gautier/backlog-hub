@@ -11,12 +11,22 @@ updated_date: '2026-11-22T10:02:48Z'
 
 | How | Command |
 | --- | --- |
-| At every login | `./install.sh`: launchd agent `local.backlogs` (`~/Library/LaunchAgents/local.backlogs.plist`, `RunAtLoad`, `KeepAlive`), then opens http://localhost:6400 |
+| At every login | `./install.sh`: launchd agent `local.backlogs` (`~/Library/LaunchAgents/local.backlogs.plist`, `RunAtLoad`, `KeepAlive`), then builds and opens the Mac app |
+| Rebuild the Mac app | `scripts/build-app.sh` |
 | Remove the agent | `./install.sh --uninstall` |
 | By hand | `npm install && node server.js` |
 
 - `install.sh` runs `npm install` with the agent's Node. The agent's `PATH` holds the `backlog` CLI's folder; Node from fnm's default alias when present.
 - Log: `~/Library/Logs/Backlogs.log`.
+
+## Mac app
+
+`mac/BacklogHub.swift`, built by `scripts/build-app.sh` (swiftc, icon from `public/icon.svg` via rsvg-convert and iconutil, ad hoc signed) into `/Applications/Backlog Hub.app`. A window with a WebKit view on http://localhost:6400; the server stays the launchd agent's.
+- No title bar: the system's one, even transparent, catches drags at the top of the window and broke reordering tabs. It is hidden and the window buttons are the app's own (`WindowButtons`), centred on the tabs. The page gets the `mac-app` class (room for them in `style.css`); a click on an empty spot of the tab bar moves the window, a double click zooms it.
+- Closing the window hides it (conversations stay loaded); the Dock icon brings it back. Size and place remembered.
+- Links outside localhost open in the default browser. `alert`, `confirm`, `prompt` and file pickers are native sheets.
+- Menus: Edit (copy, paste…), View (Home Cmd+Shift+H, Reload Cmd+R, zoom Cmd+0/+/-), Window. Web Inspector: right click › Inspect Element.
+- Theme and palette are stored by the app's web view, apart from any browser.
 
 ## Project list
 

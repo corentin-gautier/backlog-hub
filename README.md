@@ -14,17 +14,17 @@ macOS only.
 - [Node](https://nodejs.org) 20 or later.
 - The `backlog` CLI: `brew install backlog-md` or `npm i -g backlog.md`.
 - For the Claude Code panel: the [`claude` CLI](https://docs.claude.com/en/docs/claude-code), signed in.
-- For encrypted docs: the Xcode Command Line Tools (`xcode-select --install`), for `swiftc`.
+- The Xcode Command Line Tools (`xcode-select --install`), for `swiftc`: the Mac app and encrypted docs.
 
 ## Install
 
 ```sh
 git clone https://github.com/corentin-gautier/backlog-hub.git && cd backlog-hub
-./install.sh            # starts the server at every login, opens http://localhost:6400
+./install.sh            # starts the server at every login, installs Backlog Hub.app in /Applications and opens it
 ./install.sh --uninstall
 ```
 
-Then install the page as an app: in Safari, File › Add to Dock; in Chrome, the install icon at the right of the address bar.
+The app is a native window on the page (needs the Xcode Command Line Tools). `scripts/build-app.sh` rebuilds it alone. The page also works in any browser at http://localhost:6400.
 
 ## Optional: the Backlog.md fork
 
