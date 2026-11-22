@@ -74,6 +74,10 @@ If Backlog Hub is useful to you, you can support my work with a small donation o
 
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/corentingautier)
 
+## Thanks
+
+To [Mr Lesk](https://github.com/MrLesk) for [Backlog.md](https://github.com/MrLesk/Backlog.md), which every board here runs on.
+
 ## License
 
 [MIT](LICENSE)
