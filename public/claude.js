@@ -51,17 +51,35 @@ const Claude = (() => {
 		return t.innerHTML;
 	}
 
-	// Clicks in the chat, all opened by the server so the app never navigates away: web links in the default browser, files open on the Mac (code in VS Code at its line).
+	// Clicks in the chat: images zoom in the page; links and paths are opened by the server so the app never
+	// navigates away: web links in the default browser, files on the Mac (code in VS Code at its line).
 	function openLinks(panel) {
 		const open = (ref) => api(`projects/${panel.port}/open`, 'POST', { path: ref });
 		panel.log.addEventListener('click', (event) => {
-			const link = event.target.closest('.md a, .md img, .md code.path');
+			const img = event.target.closest('.md img, .me img');
+			if (img) return zoom(img.src, img.dataset.path && (() => open(img.dataset.path)));
+			const link = event.target.closest('.md a, .md code.path');
 			if (!link) return;
-			const ref = link.tagName === 'A' ? link.getAttribute('href') : link.tagName === 'IMG' ? link.dataset.path || link.src : link.textContent.trim();
 			event.preventDefault();
-			if (/^(data|blob):/i.test(ref)) return;
-			open(ref);
+			open(link.tagName === 'A' ? link.getAttribute('href') : link.textContent.trim());
 		});
+	}
+
+	// An image full size over the page; a click or Esc closes it, "Open" opens its file when it has one.
+	function zoom(src, openFile) {
+		const box = h('div', 'zoom');
+		const img = Object.assign(h('img'), { src });
+		box.append(img);
+		if (openFile) {
+			const button = h('button', 'btn', 'Open file');
+			button.onclick = (event) => (event.stopPropagation(), openFile());
+			box.append(button);
+		}
+		const close = () => (box.remove(), removeEventListener('keydown', key, true));
+		const key = (event) => event.key === 'Escape' && (event.stopPropagation(), close());
+		box.onclick = close;
+		addEventListener('keydown', key, true);
+		document.body.append(box);
 	}
 	const modelName = (id) => (id || '').replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-(\d+)$/, ' $1').replace(/^\w/, (c) => c.toUpperCase());
 
@@ -72,6 +90,17 @@ const Claude = (() => {
 	// ---- rendering ----
 
 	const nearBottom = (log) => log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+
+	// The log stays at the bottom while it was there: on new rows, the typing line showing, images loading.
+	function follow(panel) {
+		const { log } = panel;
+		panel.stick = true;
+		log.addEventListener('scroll', () => (panel.stick = nearBottom(log)));
+		const keep = () => panel.stick && (log.scrollTop = log.scrollHeight);
+		new MutationObserver(keep).observe(log, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'open'] });
+		log.addEventListener('load', keep, true);
+		new ResizeObserver(keep).observe(log);
+	}
 	function append(panel, el) {
 		const stick = nearBottom(panel.log);
 		panel.log.insertBefore(el, panel.typing);
@@ -487,6 +516,7 @@ const Claude = (() => {
 			slash: el.querySelector('.slash'), sendButton: el.querySelector('.send'), modelChip: el.querySelector('.model'), modeChip: el.querySelector('.mode'),
 		});
 		openLinks(panel);
+		follow(panel);
 		dropImages(panel);
 		const { input } = panel;
 		const grow = () => {
