@@ -4,7 +4,8 @@
 #
 #   scripts/release.sh --release   the whole release: the next version from the Conventional Commits since the last
 #                                  tag (scripts/changelog.mjs), its CHANGELOG.md section, build, commit
-#                                  "chore(release): vX.Y.Z", tag, push, GitHub release with the section as notes
+#                                  "chore(release): vX.Y.Z", tag, push, GitHub release with the section as notes,
+#                                  the site republished and the Homebrew cask bumped
 #   scripts/release.sh --dry-run   prints the next version and its notes, changes nothing
 #   scripts/release.sh --upload    publishes the files already in dist/ for the current version (a failed upload)
 #   scripts/release.sh             only builds everything, current version (--mac: the .dmg files, --win: the .exe,
@@ -87,6 +88,16 @@ if [[ $mode == (--release|--upload) ]]; then
 	git push --quiet origin main v$version 2>/dev/null || git push --quiet origin main
 	gh release create v$version $files --verify-tag --title "Backlog Hub $version" --notes-file build/notes.md
 	scripts/publish-site.sh # the site's download links point to the latest release
+
+	# The Homebrew cask (corentin-gautier/homebrew-tap; TAP_DIR to override): version and both checksums.
+	tap=${TAP_DIR:-$HOME/Projects/homebrew-tap}
+	[[ -d $tap ]] || gh repo clone corentin-gautier/homebrew-tap $tap
+	git -C $tap pull --quiet
+	arm=$(shasum -a 256 $files[1] | cut -d' ' -f1)
+	intel=$(shasum -a 256 $files[2] | cut -d' ' -f1)
+	sed -i '' -E -e "s/^  version \".*\"/  version \"$version\"/" -e "s/arm:   \"[0-9a-f]+\"/arm:   \"$arm\"/" -e "s/intel: \"[0-9a-f]+\"/intel: \"$intel\"/" $tap/Casks/backlog-hub.rb
+	git -C $tap commit --quiet -am "backlog-hub $version"
+	git -C $tap push --quiet
 fi
 rm -rf build
 files=(dist/*.(dmg|exe)(N)); (( $#files )) && ls -lh $files || true

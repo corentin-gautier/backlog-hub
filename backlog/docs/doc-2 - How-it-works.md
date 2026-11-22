@@ -32,7 +32,7 @@ Electron, macOS and Windows: `electron/main.js` runs `server.js` in the app's No
 
 ## Releases
 
-`npm run release` (`scripts/release.sh --release`), from a clean `main`: `scripts/changelog.mjs` reads the Conventional Commits since the last `v*` tag (breaking: major, minor before 1.0; `feat`: minor; `fix`, `perf`: patch; other types: no release) and writes the version's CHANGELOG.md section (with commit links); `npm version` sets it; then the build, commit `chore(release): vX.Y.Z`, tag, push, a GitHub release with that section as notes, and the site republished. A failed build undoes the version and changelog. `npm run release:dry` prints the next version and notes; `--upload` retries the publishing from `dist/`.
+`npm run release` (`scripts/release.sh --release`), from a clean `main`: `scripts/changelog.mjs` reads the Conventional Commits since the last `v*` tag (breaking: major, minor before 1.0; `feat`: minor; `fix`, `perf`: patch; other types: no release) and writes the version's CHANGELOG.md section (with commit links); `npm version` sets it; then the build, commit `chore(release): vX.Y.Z`, tag, push, a GitHub release with that section as notes, the site republished, and the Homebrew cask `backlog-hub` in `corentin-gautier/homebrew-tap` (`~/Projects/homebrew-tap`, `TAP_DIR` to override) set to the new version and checksums. A failed build undoes the version and changelog. `npm run release:dry` prints the next version and notes; `--upload` retries the publishing from `dist/`.
 
 ## Project list
 

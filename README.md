@@ -24,6 +24,14 @@ From the [latest release](https://github.com/corentin-gautier/backlog-hub/releas
 - **macOS**: `Backlog-Hub-<version>-arm64.dmg` (Apple silicon) or `-x64.dmg` (Intel). Drag the app to Applications.
 - **Windows**: `Backlog-Hub-Setup-<version>.exe`. The installer is not signed: Windows SmartScreen asks to confirm (More info › Run anyway).
 
+Or with [Homebrew](https://brew.sh) (macOS):
+
+```sh
+brew tap corentin-gautier/tap
+brew trust --cask corentin-gautier/tap/backlog-hub
+brew install --cask corentin-gautier/tap/backlog-hub
+```
+
 Everything ships inside: the app's own Node and the `backlog` CLI (a `backlog` on your PATH, such as the fork, wins). The app opens at login (turn it off in its menu, or the tray menu on Windows); closing its window keeps it running. For the Claude Code panel, install the [`claude` CLI](https://docs.claude.com/en/docs/claude-code) and sign in.
 
 ## From source (macOS)
