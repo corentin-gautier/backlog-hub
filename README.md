@@ -7,6 +7,16 @@ A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board o
 - **Claude Code** beside each board (✻ Claude, or Ctrl+`), and a general chat on the home page. A conversation keeps running while the window is closed.
 - **Encrypted docs** (macOS): a doc's Encrypt button keeps it encrypted on disk, unlocked with Touch ID (needs the fork below).
 
+![The home: due tasks, tasks in progress, a Claude chat, the projects by category](screenshots/home.png)
+
+![A board with Claude Code beside it](screenshots/board.png)
+
+<details><summary>Dark</summary>
+
+![The home in dark mode](screenshots/home-dark.png)
+
+</details>
+
 ## Download
 
 From the [latest release](https://github.com/corentin-gautier/backlog-hub/releases/latest):
@@ -27,7 +37,7 @@ git clone https://github.com/corentin-gautier/backlog-hub.git && cd backlog-hub
 npm run app             # the desktop app on this checkout (it uses the server above when it runs)
 ```
 
-Build the installers with `scripts/release.sh` (see its header: signing, notarization, `--publish`).
+Build the installers with `scripts/release.sh` (see its header: signing, notarization, `--publish`). Changes are listed in [CHANGELOG.md](CHANGELOG.md); the README's screenshots come from `scripts/screenshots.sh` (demo projects).
 
 ## Optional: the Backlog.md fork
 

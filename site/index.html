@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Backlog Hub — every Backlog.md board on your Mac, on one page</title>
-<meta name="description" content="A home page for every Backlog.md board on your Mac: projects in categories, tasks coming up across all of them, and Claude Code beside each board. Free and open source.">
+<title>Backlog Hub — every Backlog.md board on one page</title>
+<meta name="description" content="A home page for every Backlog.md board on your computer: projects in categories, tasks coming up across all of them, and Claude Code beside each board. Free and open source.">
 <meta name="theme-color" content="#f1ebdf" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161411" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -38,7 +38,7 @@
 	header.bar .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
 	.brand { display: flex; align-items: center; gap: 10px; font: 600 19px var(--serif); text-decoration: none; }
 	.brand img { width: 30px; height: 30px; }
-	header.bar nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 500; }
+	header.bar nav { display: flex; align-items: center; gap: 22px; margin-left: auto; font-size: 14px; font-weight: 500; line-height: 1; }
 	header.bar nav a { text-decoration: none; color: var(--muted); }
 	header.bar nav a:hover { color: var(--text); }
 	.btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 6px; font: 600 14.5px var(--sans); text-decoration: none; border: 1px solid transparent; transition: transform .15s, box-shadow .15s, background .15s; }
@@ -91,7 +91,8 @@
 	.row .what small .dot { width: 12px; height: 12px; font-size: 8px; }
 	.row .when { font-size: 11.5px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 	.row.soon .when { color: #a8741a; }
-	.chat { display: flex; flex-direction: column; height: 100%; min-height: 200px; padding: 12px; gap: 9px; }
+	.cols > div { display: flex; flex-direction: column; } /* the chat fills its column, the heading included */
+	.chat { display: flex; flex-direction: column; flex: 1; min-height: 200px; padding: 12px; gap: 9px; }
 	.bubble { align-self: flex-end; max-width: 85%; background: var(--accent-soft); padding: 7px 11px; border-radius: 12px 12px 3px 12px; }
 	.reply { color: var(--text); }
 	.tool { display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; font-size: 11.5px; color: var(--muted); }
@@ -136,6 +137,13 @@
 	.board .claude { background: var(--bg); display: flex; flex-direction: column; }
 	.board .claude header { padding: 10px 12px; border-bottom: 1px solid var(--line); font-weight: 600; font-size: 12px; }
 
+	/* Download */
+	.downloads { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+	.dl { display: flex; align-items: center; gap: 16px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
+	.dl:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 10px 30px rgb(40 25 10 / .08); }
+	.dl svg { width: 34px; height: 34px; fill: var(--text); flex: none; }
+	.dl b { display: block; font: 600 21px var(--serif); }
+	.dl small { color: var(--muted); font-size: 13.5px; }
 	/* Install */
 	.install { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
 	.steps { counter-reset: s; display: grid; gap: 22px; }
@@ -157,7 +165,7 @@
 	footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 
 	@media (max-width: 900px) {
-		.cols, .cards, .features, .split, .install { grid-template-columns: 1fr; }
+		.cols, .cards, .features, .split, .install, .downloads { grid-template-columns: 1fr; }
 		.cols > :nth-child(3), .cards > :nth-child(n+2) { display: none; }
 		.board { grid-template-columns: 1fr 1.3fr; } .board .col:nth-child(2) { display: none; }
 		header.bar nav a:not(.btn) { display: none; }
@@ -172,7 +180,7 @@
 		<nav>
 			<a href="#features">Features</a>
 			<a href="#claude">Claude Code</a>
-			<a href="#install">Install</a>
+			<a href="#install">Download</a>
 			<a class="btn ghost small" href="https://github.com/corentin-gautier/backlog-hub"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>GitHub</a>
 		</nav>
 	</div>
@@ -180,14 +188,14 @@
 
 <section class="hero">
 	<div class="wrap">
-		<div class="kicker">For Backlog.md · macOS · Free and open source</div>
-		<h1>Every project on your Mac, <em>on one page.</em></h1>
+		<div class="kicker">For Backlog.md · macOS and Windows · Free and open source</div>
+		<h1>Every project, <em>on one page.</em></h1>
 		<p class="lead">Backlog Hub gathers every Backlog.md board you have into a calm home: projects in categories, what's due across all of them, and Claude Code right beside each board.</p>
 		<div class="ctas">
-			<a class="btn primary" href="#install">Install on your Mac</a>
+			<a class="btn primary" href="#install">Download</a>
 			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View the source</a>
 		</div>
-		<div class="note">macOS · Node 20+ · MIT licence</div>
+		<div class="note">macOS 12+ · Windows 10+ · MIT licence</div>
 
 		<div class="shot">
 			<div class="win">
@@ -252,8 +260,8 @@
 			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><h3>Coming up</h3><p>Open tasks with a due date, across every project, soonest first. Tasks labelled monthly, quarterly or yearly come back once done.</p></div>
 			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h12"/></svg></div><h3>A tab per project</h3><p>Open a board in its own tab, reorder tabs, close them. Each board starts on its own port the first time you open it.</p></div>
 			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg></div><h3>Claude Code beside you</h3><p>A chat with Claude Code in each project, and a general one on the home page. Conversations keep running while the page is closed.</p></div>
-			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h3>Encrypted docs</h3><p>Keep a sensitive doc encrypted on disk and unlock it with Touch ID, right from the doc page (with the optional Backlog.md fork).</p></div>
-			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><h3>A real Mac app</h3><p>A small native app, light and dark, with a Paper or Default palette. No Electron: under a megabyte, the page in a WebKit window.</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h3>Encrypted docs</h3><p>Keep a sensitive doc encrypted on disk and unlock it with Touch ID, right from the doc page (macOS, with the optional Backlog.md fork).</p></div>
+			<div class="feature"><div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><h3>A desktop app</h3><p>For macOS and Windows, light and dark, with a Paper or Default palette. Opens at login and keeps running when its window is closed.</p></div>
 		</div>
 	</div>
 </section>
@@ -306,23 +314,26 @@
 <section class="part" id="install">
 	<div class="wrap">
 		<div class="part-head">
-			<div class="kicker">Install</div>
-			<h2>Two commands, then it starts with your Mac.</h2>
+			<div class="kicker">Download</div>
+			<h2>One download, everything inside.</h2>
+			<p>The app brings its own runtime and the Backlog.md command line. Install it, and your boards are there.</p>
+		</div>
+		<div class="downloads">
+			<a class="dl" href="https://github.com/corentin-gautier/backlog-hub/releases/latest"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1ZM13.9 5c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3-1.5Z"/></svg><span><b>macOS</b><small>.dmg · Apple silicon or Intel</small></span></a>
+			<a class="dl" href="https://github.com/corentin-gautier/backlog-hub/releases/latest"><svg viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3Zm8.4-1.2L21 3v8.5h-9.6ZM3 12.4h7.5v7.2L3 18.5Zm8.4 0H21V21l-9.6-1.4Z"/></svg><span><b>Windows</b><small>.exe installer · 64-bit</small></span></a>
 		</div>
 		<div class="install">
 			<div class="steps">
-				<div class="step"><div><h3>Get Backlog.md</h3><p>The <code>backlog</code> command line, from Homebrew or npm. Your boards stay plain Markdown in each repo.</p></div></div>
-				<div class="step"><div><h3>Clone and install</h3><p>The script starts the hub at every login, builds the Mac app in Applications and opens it.</p></div></div>
-				<div class="step"><div><h3>Open your projects</h3><p>Boards in ~/Projects and ~/Documents show up on their own; add any other folder with the + button.</p></div></div>
+				<div class="step"><div><h3>Install</h3><p>On a Mac, drag Backlog Hub to Applications. On Windows, run the installer (SmartScreen may ask: More info › Run anyway).</p></div></div>
+				<div class="step"><div><h3>Open your projects</h3><p>Boards in your Projects and Documents folders show up on their own; add any other folder with the + button.</p></div></div>
+				<div class="step"><div><h3>Bring Claude in</h3><p>For the Claude Code panel, install the <code>claude</code> command line and sign in once.</p></div></div>
 			</div>
 			<div>
-<pre><span class="c"># Backlog.md</span>
+<pre><span class="c"># Or from source, on a Mac</span>
 <span class="p">$ </span>brew install backlog-md
-
-<span class="c"># Backlog Hub</span>
 <span class="p">$ </span>git clone https://github.com/corentin-gautier/backlog-hub.git
 <span class="p">$ </span>cd backlog-hub && ./install.sh</pre>
-				<p class="req">Needs <a href="https://nodejs.org">Node</a> 20+ and the Xcode Command Line Tools (<code>xcode-select --install</code>). For Claude Code, the <code>claude</code> CLI, signed in.</p>
+				<p class="req">From source: <a href="https://nodejs.org">Node</a> 20+, and the Xcode Command Line Tools (<code>xcode-select --install</code>) for encrypted docs.</p>
 			</div>
 		</div>
 	</div>
@@ -333,7 +344,7 @@
 		<img src="icon.svg" alt="">
 		<h2>Your projects, at a glance.</h2>
 		<div class="ctas" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-			<a class="btn primary" href="#install">Install on your Mac</a>
+			<a class="btn primary" href="#install">Download</a>
 			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View on GitHub</a>
 		</div>
 	</div>
