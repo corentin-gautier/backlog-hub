@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Window title bar, the same as the top bar. -->
 <meta name="theme-color" content="#f3f4f6">
-<!-- The theme before the first paint (kept up to date by app.js). -->
+<!-- The theme and palette before the first paint (kept up to date by app.js). -->
 <script>
 	try { var t = JSON.parse(localStorage.getItem('theme')); } catch (e) {}
 	document.documentElement.dataset.theme = t === 'light' || t === 'dark' ? t : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	try { var p = JSON.parse(localStorage.getItem('palette')); } catch (e) {}
+	document.documentElement.dataset.palette = p === 'paper' ? 'paper' : 'default';
 </script>
 <title>Backlog Hub</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -23,7 +25,7 @@
 	<button id="code" title="Open the project in VS Code" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg>VS Code</button>
 </nav>
 <section id="home">
-	<div class="dateline"><div id="today"></div><div id="theme" role="radiogroup" aria-label="Theme"></div></div>
+	<div class="dateline"><div id="today"></div><div id="palette" role="radiogroup" aria-label="Palette"></div><div id="theme" role="radiogroup" aria-label="Theme"></div></div>
 	<div class="masthead"><h1>My projects</h1><div id="toggles" role="group" aria-label="Show on the home"></div></div>
 	<div id="top">
 		<section class="part" data-part="alerts" hidden><h2>Coming up <span class="count"></span></h2><div class="alerts"></div></section>

@@ -19,6 +19,8 @@
 	--pill: oklch(0.928 0.006 264.531); --pill-text: oklch(0.373 0.034 259.733); /* gray-200, gray-700 */
 	--soft: oklch(0.967 0.003 264.542); /* gray-100: date blocks, inline code */
 	--radius: 10px; /* cards, lists, chat */
+	/* Project colours (app.js picks one per project name). */
+	--p0: #a8619e; --p1: #4f9db0; --p2: #c8743f; --p3: #7a6fc4; --p4: #4f6fc4; --p5: #c45a5a; --p6: #c4a23a; --p7: #6b7a8f;
 	--shadow: 0 1px 2px rgb(0 0 0 / .05);
 	/* Active tab and buttons: white on the gray bar, blue-700 text, blue-200 edge. */
 	--on: oklch(0.488 0.243 264.376); --on-bg: #fff; --on-line: oklch(0.882 0.059 254.128);
@@ -212,16 +214,17 @@ body.resizing iframe { pointer-events: none; }
 
 #home { flex: 1; padding: 44px 56px 104px; display: none; overflow: auto; }
 #home.on { display: block; }
-#home .dateline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-#today { color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+#home .dateline { display: flex; align-items: center; gap: 16px; }
+#today { flex: 1; color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
 #home .masthead { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px 24px; margin: 4px 0 36px; }
-#home h1 { font-size: 26px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; margin: 0; flex: 1; }
+#home h1 { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 0; flex: 1; }
 
 /* The theme: light, the system's, dark. */
-#theme { display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: var(--soft); }
-#theme button { display: grid; place-items: center; width: 28px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--faint); cursor: pointer; transition: color .15s, background .15s; }
-#theme button:hover { color: var(--text); }
-#theme button[aria-checked="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
+#theme, #palette { display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: var(--soft); }
+#theme button, #palette button { display: grid; place-items: center; width: 28px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--faint); cursor: pointer; transition: color .15s, background .15s; }
+#theme button:hover, #palette button:hover { color: var(--text); }
+#theme button[aria-checked="true"], #palette button[aria-checked="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
+#palette button { width: auto; padding: 0 9px; font: inherit; font-size: 12px; font-weight: 500; }
 #theme svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Toggles beside the title: on, a filled chip with a tick; off, an outlined one. */
@@ -340,3 +343,69 @@ nav button.dragging { opacity: .4; }
 .zoom img { max-width: 100%; max-height: calc(100% - 50px); object-fit: contain; border-radius: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .4); background: var(--card); }
 .zoom .btn { font: inherit; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 8px; border: 0; background: rgb(255 255 255 / .92); color: #111; cursor: pointer; }
 @keyframes fade { from { opacity: 0; } }
+
+/* ---- Paper palette (data-palette=paper): warm paper, ink, a terracotta accent beside Claude's orange spark.
+   Titles in New York (serif), dates and counts in SF Mono, the rest in SF Pro. ---- */
+:root[data-palette=paper] {
+	--serif: ui-serif, "New York", Georgia, serif;
+	--mono: ui-monospace, "SF Mono", Menlo, monospace;
+	--bg: #fbf8f2;
+	--bar: #f1ebdf;
+	--bar-hover: #e7dfd0;
+	--card: #fffdf9;
+	--text: #26211c;
+	--muted: #6f6458;
+	--faint: #8f8475;
+	--line: #e4dccd;
+	--card-line: #e4dccd;
+	--track: #ebe3d4;
+	--dash: #d3c8b5;
+	--hover: #f5efe4;
+	--done: #5f8a5a; /* sage */
+	--doing: #d4a13d; /* ochre */
+	--accent: #c2553a; /* terracotta */
+	--accent-soft: #f6e3da;
+	--pill: #ebe3d4; --pill-text: #5c5247;
+	--soft: #f1ebdf;
+	--radius: 6px;
+	--shadow: 0 1px 0 #e4dccd;
+	--on: #a8442c; --on-bg: #fffdf9; --on-line: #e4dccd;
+	--soon: #a8741a; --late: #b5412a;
+	--p0: #c2553a; --p1: #5f8a5a; --p2: #d4a13d; --p3: #4a6d8c; --p4: #8c5a7a; --p5: #3f7f7a; --p6: #a0673a; --p7: #6b6255;
+}
+:root[data-palette=paper][data-theme=dark] {
+	--bg: #1e1b18;
+	--bar: #161411;
+	--bar-hover: #2a2622;
+	--card: #26221e;
+	--text: #efe8dc;
+	--muted: #a89c8c;
+	--faint: #847a6d;
+	--line: #3a342d;
+	--card-line: #3a342d;
+	--track: #3a342d;
+	--dash: #4d463d;
+	--hover: #2c2824;
+	--done: #7fa978;
+	--doing: #d9ac4f;
+	--accent: #e07a5c;
+	--accent-soft: #3d2a22;
+	--pill: #3a342d; --pill-text: #d3c8b5;
+	--soft: #2f2a25;
+	--shadow: none;
+	--on: #f0a088; --on-bg: var(--accent-soft); --on-line: transparent;
+	--soon: #e0b45a; --late: #f08a6e;
+}
+[data-palette=paper] #today { color: var(--muted); font: 500 11.5px var(--mono); letter-spacing: .14em; }
+[data-palette=paper] #home h1 { font-family: var(--serif); font-weight: 600; } /* same size as Default */
+[data-palette=paper] :is(.part, .group) h2 { font: italic 500 17px var(--serif); text-transform: none; letter-spacing: 0; }
+[data-palette=paper] .count { font: 500 11px/18px var(--mono); font-style: normal; }
+[data-palette=paper] .acts button { font: 500 12px -apple-system, system-ui, sans-serif; }
+[data-palette=paper] .name { font: 600 18px var(--serif); }
+[data-palette=paper] .avatar { border-radius: 6px; font: 600 19px var(--serif); }
+[data-palette=paper] .alert .date { border-radius: 4px; }
+[data-palette=paper] .alert .date b { font: 600 18px var(--serif); }
+[data-palette=paper] .alert .date span { font: 10px var(--mono); letter-spacing: .08em; }
+[data-palette=paper] .alert.soon :is(.date b, .date span, .when) { color: var(--soon); }
+[data-palette=paper] .alert.late .date { background: color-mix(in oklch, var(--accent) 18%, transparent); }
+[data-palette=paper] .alert.late :is(.date b, .date span, .when) { color: var(--late); }

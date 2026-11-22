@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-	<rect width="512" height="512" rx="112" fill="#2f6fde"/>
-	<g fill="#fff">
-		<rect x="96" y="120" width="88" height="56" rx="14"/>
-		<rect x="96" y="196" width="88" height="56" rx="14"/>
-		<rect x="96" y="272" width="88" height="56" rx="14"/>
-		<rect x="212" y="120" width="88" height="56" rx="14"/>
-		<rect x="212" y="196" width="88" height="56" rx="14"/>
-		<rect x="328" y="120" width="88" height="56" rx="14" opacity=".6"/>
-		<rect x="328" y="196" width="88" height="56" rx="14" opacity=".6"/>
-		<rect x="328" y="272" width="88" height="56" rx="14" opacity=".6"/>
-		<rect x="328" y="348" width="88" height="56" rx="14" opacity=".6"/>
-	</g>
+	<rect width="512" height="512" rx="112" fill="#26211c"/>
+	<rect x="132" y="150" width="268" height="300" rx="16" fill="#c2553a" transform="rotate(7 266 300)"/>
+	<rect x="120" y="110" width="272" height="300" rx="16" fill="#fbf8f2"/>
+	<rect x="156" y="160" width="140" height="22" rx="4" fill="#26211c"/>
+	<rect x="156" y="214" width="200" height="10" rx="5" fill="#b3a898"/>
+	<rect x="156" y="246" width="200" height="10" rx="5" fill="#b3a898"/>
+	<rect x="156" y="278" width="150" height="10" rx="5" fill="#b3a898"/>
+	<circle cx="166" cy="355" r="12" fill="#c2553a"/>
+	<rect x="190" y="349" width="120" height="12" rx="6" fill="#26211c"/>
 </svg>

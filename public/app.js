@@ -347,11 +347,10 @@ function closeTab(port) {
 }
 
 // A colour per project, picked from its name so it stays the same.
-const COLOURS = ['#a8619e', '#4f9db0', '#c8743f', '#7a6fc4', '#4f6fc4', '#c45a5a', '#c4a23a', '#6b7a8f'];
 function colour(name) {
 	let hash = 0;
 	for (const char of name) hash = (hash * 31 + char.codePointAt(0)) >>> 0;
-	return COLOURS[hash % COLOURS.length];
+	return `var(--p${hash % 8})`; // the palette's project colours (style.css)
 }
 
 function card(p) {
@@ -450,18 +449,24 @@ fab.querySelector('[data-act=category]').onclick = () => (openFab(false), newCat
 document.addEventListener('pointerdown', (event) => !fab.contains(event.target) && openFab(false));
 document.addEventListener('keydown', (event) => event.key === 'Escape' && openFab(false));
 
-// ---- theme: light, dark or the system's, per browser; the boards follow it (Backlog.md fork) ----
+// ---- theme: light, dark or the system's, per browser; the boards follow it (Backlog.md fork). And the palette. ----
 const THEMES = {
 	light: 'M8 4.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4ZM8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9',
 	system: 'M2 3.5h12v7.5H2ZM6 13.5h4M8 11v2.5',
 	dark: 'M13.2 9.6A5.5 5.5 0 0 1 6.4 2.8a5.5 5.5 0 1 0 6.8 6.8Z',
 };
 let theme = stored('theme', 'system');
+// The palette: Backlog.md's (default) or Paper; the window's bar colour for each, light and dark.
+const BARS = { default: { light: '#f3f4f6', dark: '#030712' }, paper: { light: '#f1ebdf', dark: '#161411' } };
+let palette = stored('palette', 'default');
+if (!BARS[palette]) palette = 'default';
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const shade = () => (theme === 'system' ? (darkQuery.matches ? 'dark' : 'light') : theme);
 function applyTheme() {
 	document.documentElement.dataset.theme = shade();
-	document.querySelector('meta[name=theme-color]').content = shade() === 'dark' ? '#030712' : '#f3f4f6';
+	document.documentElement.dataset.palette = palette;
+	document.querySelector('meta[name=theme-color]').content = BARS[palette][shade()];
+	document.querySelectorAll('#palette button').forEach((b) => b.setAttribute('aria-checked', b.dataset.palette === palette));
 	document.querySelectorAll('#theme button').forEach((b) => b.setAttribute('aria-checked', b.dataset.theme === theme));
 	for (const pane of Object.values(frames)) pane.querySelector('iframe')?.contentWindow?.postMessage({ backlogHub: 'theme', theme: shade() }, '*');
 }
@@ -478,6 +483,18 @@ for (const [name, d] of Object.entries(THEMES)) {
 	button.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}"/></svg>`;
 	button.onclick = () => setTheme(name);
 	$('#theme').append(button);
+}
+for (const name of Object.keys(BARS)) {
+	const button = document.createElement('button');
+	button.dataset.palette = name;
+	button.setAttribute('role', 'radio');
+	button.textContent = { default: 'Default', paper: 'Paper' }[name];
+	button.onclick = () => {
+		palette = name;
+		store('palette', name);
+		applyTheme();
+	};
+	$('#palette').append(button);
 }
 darkQuery.addEventListener('change', applyTheme);
 // A board asks for the theme when it loads, and its own toggle changes it here.

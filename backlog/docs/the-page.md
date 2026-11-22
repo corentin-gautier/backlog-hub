@@ -9,13 +9,14 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Layout
 
 - Top bar: a Home tab, then one tab per open project.
-- Home: today's date (in the browser's language) with the theme switch at its right, "My projects" with the top row's toggles at its right, a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one; shown only when it has some, or while a card is dragged).
+- Home: today's date (in the browser's language) with the palette and theme switches at its right, "My projects" with the top row's toggles at its right, a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one; shown only when it has some, or while a card is dragged).
 - The + button at the bottom right of the home opens a menu: Add a project, New category. Esc or a click elsewhere closes it.
 
 ## Theme
 
 - Light, the system's (default) or dark, picked with the switch beside the date; kept per browser (`theme` in localStorage) and applied before the first paint (inline script in `index.html`, `data-theme` on `<html>`).
 - The boards follow it: a board asks for the theme on load and gets every change (postMessage `{ backlogHub: 'theme' }`); its own toggle changes the hub's theme ([Backlog.md fork](/documentation/4/backlog-fork)).
+- Palette: Default (Backlog.md's grays and blue) or Paper (warm paper, ink, terracotta; New York titles, SF Mono dates), picked with the switch left of the theme's; kept as `palette` in localStorage, applied before the first paint (`data-palette` on `<html>`). Paper's variables and type overrides are the last section of `style.css`; project colours are `--p0`…`--p7` per palette. The boards keep Backlog.md's palette.
 
 ## Categories and order
 
