@@ -1,4 +1,4 @@
-// Backlogs: a home page for every Backlog.md board on this Mac.
+// Backlog Hub: a home page for every Backlog.md board on this Mac.
 // Serves public/ on localhost, keeps the project list, starts each board's
 // `backlog browser` on demand and asks macOS for a folder to add one.
 const http = require('node:http');
@@ -390,7 +390,7 @@ const server = http.createServer((req, res) => {
 });
 vault.init(DATA_DIR);
 claude.attach(server, (port) => (port === GENERAL.port ? GENERAL : load().find((p) => String(p.port) === port)), ORIGINS, DATA_DIR);
-server.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
+server.listen(PORT, '127.0.0.1', () => console.log(`Backlog Hub on http://localhost:${PORT}`));
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
 	process.on(signal, () => {

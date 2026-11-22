@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Runs the Backlogs server at every login (launchd agent), then opens the app.
+# Runs the Backlog Hub server at every login (launchd agent), then opens the app.
 # ./install.sh --uninstall removes the agent.
 set -e
 here=${0:A:h}

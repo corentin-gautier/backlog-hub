@@ -29,4 +29,4 @@ if [[ $(readlink $LINK) != $FORK/dist/backlog ]]; then
 	ln -sf $FORK/dist/backlog $LINK
 fi
 echo "backlog $(backlog --version) from $FORK ($(git rev-parse --short HEAD))"
-echo "Restart the boards to use it: close their tabs in Backlogs, or restart Backlogs."
+echo "Restart the boards to use it: close their tabs in Backlog Hub, or restart it."

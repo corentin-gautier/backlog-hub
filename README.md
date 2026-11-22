@@ -1,4 +1,4 @@
-# Backlogs
+# Backlog Hub
 
 A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on your Mac: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none).
 
@@ -19,7 +19,7 @@ macOS only.
 ## Install
 
 ```sh
-git clone <this repo> && cd backlogs
+git clone https://github.com/corentin-gautier/backlog-hub.git && cd backlog-hub
 ./install.sh            # starts the server at every login, opens http://localhost:6400
 ./install.sh --uninstall
 ```

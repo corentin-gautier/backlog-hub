@@ -15,7 +15,7 @@ let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent
 let keyFile = dir.appendingPathComponent("key")
 let publicFile = dir.appendingPathComponent("key.pub")
 let marker = "<!-- backlogs-vault v1 "
-let notice = "🔒 Encrypted content. To read it: the padlock button in Backlogs, then Touch ID."
+let notice = "🔒 Encrypted content. To read it: the padlock button in Backlog Hub, then Touch ID."
 
 func fail(_ message: String) -> Never {
 	FileHandle.standardError.write((message + "\n").data(using: .utf8)!)

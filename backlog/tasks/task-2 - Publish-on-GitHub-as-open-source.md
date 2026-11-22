@@ -13,7 +13,7 @@ ordinal: 2000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Backlogs is useful beyond this Mac: publish it as an open source repo.
+Backlog Hub is useful beyond this Mac: publish it as an open source repo.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

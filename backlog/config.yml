@@ -1,4 +1,4 @@
-project_name: "Backlogs"
+project_name: "Backlog Hub"
 default_status: "To Do"
 statuses: ["To decide", "To Do", "In Progress", "Done"]
 labels: []

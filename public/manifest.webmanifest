@@ -1,6 +1,6 @@
 {
-	"name": "Backlogs",
-	"short_name": "Backlogs",
+	"name": "Backlog Hub",
+	"short_name": "Backlog Hub",
 	"description": "Every Backlog.md board on this Mac",
 	"start_url": "/",
 	"scope": "/",
