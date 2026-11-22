@@ -24,6 +24,8 @@ const chats = new Map(); // port -> chat
 // { type: 'user', text } { type: 'text', text } { type: 'delta', text } { type: 'tool', id, name, input }
 // { type: 'result', id, error, text, images? } { type: 'ask', id, name, input, title } { type: 'answered', id }
 // { type: 'busy', value } { type: 'info', model, mode } { type: 'commands', list } { type: 'error', text } { type: 'reset', events, ...state }
+// Subagents: an Agent tool call is a block; the tool and result events of its work carry `parent` (the
+// Agent call's id); { type: 'agent', id, status?, text? } gives its end (completed, failed, stopped) and its report.
 
 // A slash command as the transcript keeps it: <command-name>/x</command-name><command-args>y</command-args>.
 const commandOf = (text) => {
@@ -36,9 +38,34 @@ const imagesOf = (content) => (Array.isArray(content) ? content : []).filter((b)
 
 const textOf = (content) => (typeof content === 'string' ? content : (content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n'));
 
-function convert(message) {
-	if (message.parent_tool_use_id) return []; // a subagent's own work
+// A subagent's own work, for its block: its tool calls and their results; its hand-back is its report.
+function convertSub(message) {
+	const parent = message.parent_tool_use_id;
 	const content = message.message?.content;
+	if (!Array.isArray(content)) return [];
+	if (message.type === 'assistant') {
+		return content.filter((b) => b.type === 'tool_use').map((b) => (b.name === 'SubagentHandback'
+			? { type: 'agent', id: parent, text: String(b.input?.message || '') }
+			: { type: 'tool', id: b.id, name: b.name, input: b.input, parent }));
+	}
+	return content.filter((b) => b.type === 'tool_result').map((b) => ({ type: 'result', id: b.tool_use_id, parent, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000), ...(imagesOf(b.content).length ? { images: imagesOf(b.content) } : {}) }));
+}
+
+const DELIVERED = /report was delivered to you as a message/; // the report came as the agent's hand-back
+const tag = (text, name) => (text.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`)) || [])[1];
+
+// A background agent's end, as the transcript keeps it: <task-notification>…</task-notification>.
+function notification(text) {
+	const id = tag(text, 'tool-use-id');
+	if (!id) return [];
+	const result = (tag(text, 'result') || '').trim();
+	return [{ type: 'agent', id, status: tag(text, 'status') || 'completed', ...(result && !DELIVERED.test(result) ? { text: result } : {}) }];
+}
+
+function convert(message) {
+	if (message.parent_tool_use_id) return convertSub(message);
+	const content = message.message?.content;
+	if (message.origin?.kind === 'peer') return []; // a subagent's hand-back, shown in its block
 	if (message.type === 'assistant') {
 		return (content || []).flatMap((b) => {
 			if (b.type === 'text' && b.text.trim()) return [{ type: 'text', text: b.text }];
@@ -48,7 +75,8 @@ function convert(message) {
 	}
 	if (message.type === 'user') {
 		if (typeof content === 'string') {
-			if (message.isSynthetic) return [];
+			if (content.startsWith('<task-notification>')) return notification(content);
+			if (message.isSynthetic || content.startsWith('Another Claude session sent a message:')) return [];
 			if (content.startsWith('<')) return commandOf(content) ? [{ type: 'user', text: commandOf(content) }] : [];
 			return [{ type: 'user', text: content }];
 		}
@@ -131,9 +159,21 @@ async function loadCommands(chat) {
 // The transcript of the remembered conversation, shown before anything is sent.
 async function loadHistory(chat) {
 	if (!chat.sessionId || chat.events.length) return;
-	const { getSessionMessages } = await sdk;
-	const messages = await getSessionMessages(chat.sessionId, { dir: chat.project.dir }).catch(() => []);
-	chat.events = messages.flatMap(convert);
+	const { getSessionMessages, listSubagents, getSubagentMessages } = await sdk;
+	const options = { dir: chat.project.dir };
+	const messages = await getSessionMessages(chat.sessionId, options).catch(() => []);
+	// Subagents keep their own transcripts: their work goes right after the Agent call it belongs to.
+	const agents = await listSubagents(chat.sessionId, options).catch(() => []);
+	const work = new Map(); // Agent call id -> its events
+	for (const agent of agents) {
+		for (const m of await getSubagentMessages(chat.sessionId, agent, options).catch(() => [])) {
+			if (!m.parent_tool_use_id) continue;
+			if (!work.has(m.parent_tool_use_id)) work.set(m.parent_tool_use_id, []);
+			work.get(m.parent_tool_use_id).push(...convertSub(m));
+		}
+	}
+	const withWork = (event) => [event, ...(event.type === 'tool' ? (work.get(event.id) || []).flatMap(withWork) : [])];
+	chat.events = messages.flatMap(convert).flatMap(withWork);
 }
 
 // Messages from the page, fed to the SDK as its streaming input.
@@ -201,6 +241,9 @@ async function run(chat) {
 				q.supportedModels().then((list) => (setModels(list), emit(chat, info(chat))), () => {});
 			} else if (message.type === 'system' && message.subtype === 'commands_changed') {
 				setCommands(chat, message.commands);
+			} else if (message.type === 'system' && message.subtype === 'task_notification' && message.tool_use_id) {
+				// A subagent ended (a background one possibly long after its Agent call returned); its report came as its hand-back.
+				emit(chat, { type: 'agent', id: message.tool_use_id, status: message.status });
 			} else if (message.type === 'stream_event' && !message.parent_tool_use_id) {
 				const { event } = message;
 				if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') emit(chat, { type: 'delta', text: event.delta.text });

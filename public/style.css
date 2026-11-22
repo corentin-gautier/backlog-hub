@@ -148,12 +148,26 @@ body.resizing iframe { pointer-events: none; }
 .claude .tool .n .a { color: oklch(0.627 0.194 149.214); }
 .claude .tool .n .d { color: oklch(0.637 0.237 25.331); }
 .claude .tool .state { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--dash); border-top-color: var(--accent); animation: spin 1s linear infinite; }
-.claude .tool.ok .state, .claude .tool.failed .state { border: 0; animation: none; display: grid; place-items: center; font-size: 11px; }
-.claude .tool.ok .state::before, .claude .tool.failed .state::before { content: ""; width: 12px; height: 12px; background: currentColor; mask: var(--glyph) center / contain no-repeat; }
-.claude .tool.ok .state { color: var(--done); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.5-5.2" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'); }
-.claude .tool.failed .state { color: oklch(0.637 0.237 25.331); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M3.5 3.5l5 5M8.5 3.5l-5 5" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round"/></svg>'); }
+.claude :is(.tool.ok > summary, .tool.ok > .run > summary) > .state, .claude :is(.tool.failed > summary, .tool.failed > .run > summary) > .state { border: 0; animation: none; display: grid; place-items: center; font-size: 11px; }
+.claude :is(.tool.ok > summary, .tool.ok > .run > summary) > .state::before, .claude :is(.tool.failed > summary, .tool.failed > .run > summary) > .state::before { content: ""; width: 12px; height: 12px; background: currentColor; mask: var(--glyph) center / contain no-repeat; }
+.claude :is(.tool.ok > summary, .tool.ok > .run > summary) > .state { color: var(--done); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.5-5.2" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'); }
+.claude :is(.tool.failed > summary, .tool.failed > .run > summary) > .state { color: oklch(0.637 0.237 25.331); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M3.5 3.5l5 5M8.5 3.5l-5 5" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round"/></svg>'); }
 .claude .md.read img { margin: -4px 0 0; max-height: 260px; }
 .claude .tool pre.out { max-height: 240px; }
+/* A subagent: a tool row whose folded part lists the tools it used, its report underneath. */
+.claude .agent { border-left: 2px solid color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.claude .agent > .run > summary b::before { content: "✻ "; color: var(--accent); }
+.claude .agent pre.prompt { max-height: 140px; margin: 6px 0; }
+.claude .agent .steps { display: flex; flex-direction: column; gap: 2px; margin: 6px 0 2px; padding-left: 8px; border-left: 1px solid var(--line); }
+.claude .agent .steps:empty { display: none; }
+.claude .agent .steps .tool { border: 0; padding: 1px 0; background: none; }
+.claude .agent .steps .tool + .tool { margin-top: 0; }
+.claude .agent:is(.ok, .failed) .steps .tool:not(.ok, .failed) .state { animation: none; border-top-color: var(--dash); }
+.claude .agent .report { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--text); font-size: 13px; }
+.claude .agent details.report > summary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); cursor: pointer; }
+.claude .agent details.report > summary::before { content: "▸ "; color: var(--faint); }
+.claude .agent details.report[open] > summary { margin-bottom: 6px; }
+.claude .agent details.report[open] > summary::before { content: "▾ "; }
 .claude .todos { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; }
 .claude .todos .completed { text-decoration: line-through; color: var(--faint); }
 .claude .todos .in_progress { color: var(--text); font-weight: 500; }

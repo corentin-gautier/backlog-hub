@@ -128,13 +128,84 @@ const Claude = (() => {
 		return pre;
 	}
 
-	function tool(panel, { id, name, input }) {
+	// ---- subagents ----
+	// An Agent call is a block: its type and task, a state mark, the tools it used (folded), its report when done.
+
+	function agent(panel, { id, input }) {
+		const block = h('div', 'tool agent');
+		const run = h('details', 'run');
+		const summary = h('summary');
+		block.count = h('span', 'n');
+		summary.append(h('span', 'state'), h('b', '', input.subagent_type || 'Agent'));
+		if (input.description) summary.append(h('code', '', input.description));
+		summary.append(block.count);
+		block.steps = h('div', 'steps');
+		run.append(summary);
+		if (input.prompt) run.append(h('pre', 'prompt', input.prompt));
+		run.append(block.steps);
+		block.append(run);
+		block.used = 0;
+		block.bg = Boolean(input.run_in_background);
+		count(block);
+		panel.tools[id] = block;
+		return block;
+	}
+
+	function count(block) {
+		const parts = [block.used ? `${block.used} tool${block.used > 1 ? 's' : ''}` : '', block.bg && !block.matches('.ok, .failed') ? 'in background' : ''];
+		block.count.textContent = parts.filter(Boolean).join(' · ');
+	}
+
+	// The report under the block; a long one is folded behind its first line.
+	function report(panel, block, text) {
+		block.querySelector(':scope > .report')?.remove();
+		if (!text?.trim()) return;
+		const md = h('div', 'md');
+		md.innerHTML = markdown(text, panel.port);
+		let el = md;
+		if (text.length > 600 || text.split('\n').length > 10) {
+			el = h('details');
+			el.append(h('summary', '', text.trim().split('\n')[0].replace(/[#*`_>]/g, '').trim()), md);
+		}
+		el.classList.add('report');
+		block.append(el);
+	}
+
+	function finish(block, failed) {
+		block.classList.toggle('ok', !failed);
+		block.classList.toggle('failed', failed);
+		count(block);
+	}
+
+	// The Agent call returned: launched in the background, or done with its report (unless its hand-back gave it).
+	function agentResult(panel, block, { error, text = '' }) {
+		if (!error && /^\s*Async agent launched/.test(text)) return (block.bg = true), count(block);
+		finish(block, error);
+		if (/report was delivered to you as a message/.test(text)) return;
+		let body = text.replace(/\n*agentId: [\s\S]*$/, '');
+		if (body.split('\n').every((line) => !line.trim() || line.startsWith('  '))) body = body.replace(/^ {2}/gm, '');
+		report(panel, block, body.trim());
+	}
+
+	function agentEvent(panel, { id, status, text }) {
+		const block = panel.tools[id];
+		if (!block?.classList.contains('agent')) return;
+		if (status) finish(block, status !== 'completed');
+		if (text) report(panel, block, text);
+	}
+
+	function tool(panel, { id, name, input, parent }) {
 		if (name === 'AskUserQuestion') return; // shown as its own card
+		// A subagent's tool goes in its block (never in the conversation), folded with the others.
+		const block = parent && panel.tools[parent];
+		if (parent && !block?.steps) return;
+		const place = (el) => (block ? (block.steps.append(el), block.used++, count(block)) : append(panel, el));
 		if (name === 'TodoWrite') {
 			const box = h('div', 'todos');
 			for (const todo of input.todos || []) box.append(h('div', todo.status, `${{ completed: '☑', in_progress: '◐' }[todo.status] || '☐'} ${todo.content}`));
-			return append(panel, box);
+			return place(box);
 		}
+		if (name === 'Agent' || name === 'Task') return place(agent(panel, { id, input: input || {} }));
 		const row = h('details', 'tool');
 		const summary = h('summary');
 		const state = h('span', 'state');
@@ -154,12 +225,14 @@ const Claude = (() => {
 		}
 		if (name === 'Read') row.dataset.path = input.file_path || '';
 		panel.tools[id] = row;
-		append(panel, row);
+		place(row);
 	}
 
-	function result(panel, { id, error, text, images }) {
+	function result(panel, event) {
+		const { id, error, text, images } = event;
 		const row = panel.tools[id];
 		if (!row) return;
+		if (row.classList.contains('agent')) return agentResult(panel, row, event);
 		row.classList.add(error ? 'failed' : 'ok');
 		if (text && !['Edit', 'Write'].includes(row.querySelector('b').textContent)) row.append(h('pre', 'out', text));
 		// An image Claude read, under its row; a click opens the file.
@@ -330,6 +403,7 @@ const Claude = (() => {
 			case 'delta': return setDraft(panel, (panel.draft ? panel.draftText : '') + event.text);
 			case 'tool': return tool(panel, event);
 			case 'result': return result(panel, event);
+			case 'agent': return agentEvent(panel, event);
 			case 'ask': return ask(panel, event);
 			case 'answered': return panel.log.querySelector(`[data-ask="${event.id}"]`)?.remove();
 			case 'error': return append(panel, h('div', 'error', event.text));
