@@ -3,3 +3,4 @@ mockups/
 node_modules/
 vault/backlogs-vault
 build/
+dist/

@@ -1,12 +1,13 @@
 #!/bin/zsh
-# Runs the Backlog Hub server at every login (launchd agent), builds the Mac app in /Applications and opens it.
-# ./install.sh --uninstall removes the agent and the app.
+# From a source checkout (macOS): runs the Backlog Hub server at every login (launchd agent) and opens the page.
+# The desktop app (scripts/release.sh), when installed, shows this server rather than starting its own.
+# ./install.sh --uninstall removes the agent.
 set -e
 here=${0:A:h}
 label=local.backlogs
 plist=~/Library/LaunchAgents/$label.plist
 launchctl bootout gui/$UID/$label 2>/dev/null || true
-if [[ $1 == --uninstall ]]; then rm -f $plist; osascript -e 'quit app "Backlog Hub"' 2>/dev/null || true; rm -rf "/Applications/Backlog Hub.app"; echo "Removed."; exit; fi
+if [[ $1 == --uninstall ]]; then rm -f $plist; echo "Removed."; exit; fi
 
 node=$(command -v node)
 [[ -x ~/.local/share/fnm/aliases/default/bin/node ]] && node=~/.local/share/fnm/aliases/default/bin/node
@@ -27,6 +28,6 @@ cat > $plist <<EOF
 </dict></plist>
 EOF
 launchctl bootstrap gui/$UID $plist
-$here/scripts/build-app.sh
-open "/Applications/Backlog Hub.app"
-echo "Installed: /Applications/Backlog Hub.app (the page is also at http://localhost:6400)"
+sleep 1
+open http://localhost:6400
+echo "Installed: http://localhost:6400"

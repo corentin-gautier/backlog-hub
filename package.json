@@ -1,10 +1,12 @@
 {
 	"name": "backlog-hub",
 	"private": true,
-	"description": "A home page for every Backlog.md board on your Mac",
+	"description": "A home page for every Backlog.md board on your computer",
 	"license": "MIT",
 	"scripts": {
-		"start": "node server.js"
+		"start": "node server.js",
+		"app": "electron .",
+		"release": "scripts/release.sh"
 	},
 	"dependencies": {
 		"@anthropic-ai/claude-agent-sdk": "^0.3.330",
@@ -14,5 +16,75 @@
 	},
 	"engines": {
 		"node": ">=20"
+	},
+	"devDependencies": {
+		"electron": "^45.4.1",
+		"electron-builder": "^26.18.0"
+	},
+	"main": "electron/main.js",
+	"version": "0.1.0",
+	"author": "Corentin Gautier",
+	"homepage": "https://corentingautier.dev/backlog-hub/",
+	"build": {
+		"appId": "dev.corentingautier.backloghub",
+		"productName": "Backlog Hub",
+		"copyright": "MIT licence",
+		"directories": {
+			"output": "dist",
+			"buildResources": "build"
+		},
+		"files": [
+			"electron/**",
+			"public/**",
+			"server.js",
+			"claude.js",
+			"vault.js",
+			"platform.js",
+			"package.json",
+			"!**/node_modules/@anthropic-ai/claude-agent-sdk-*{,/**}"
+		],
+		"extraResources": [
+			{
+				"from": "build/bin/${os}-${arch}",
+				"to": "bin"
+			}
+		],
+		"mac": {
+			"target": [
+				{
+					"target": "dmg",
+					"arch": [
+						"arm64",
+						"x64"
+					]
+				}
+			],
+			"category": "public.app-category.productivity",
+			"icon": "build/icon.icns",
+			"hardenedRuntime": true,
+			"entitlements": "electron/entitlements.plist",
+			"entitlementsInherit": "electron/entitlements.plist",
+			"notarize": true
+		},
+		"dmg": {
+			"title": "Backlog Hub",
+			"artifactName": "Backlog-Hub-${version}-${arch}.dmg"
+		},
+		"win": {
+			"target": [
+				{
+					"target": "nsis",
+					"arch": [
+						"x64"
+					]
+				}
+			],
+			"icon": "build/icon.png"
+		},
+		"nsis": {
+			"artifactName": "Backlog-Hub-Setup-${version}.exe",
+			"oneClick": true,
+			"perMachine": false
+		}
 	}
 }

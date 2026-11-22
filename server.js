@@ -1,19 +1,18 @@
-// Backlog Hub: a home page for every Backlog.md board on this Mac.
+// Backlog Hub: a home page for every Backlog.md board on this computer.
 // Serves public/ on localhost, keeps the project list, starts each board's
-// `backlog browser` on demand and asks macOS for a folder to add one.
+// `backlog browser` on demand and asks for a folder to add one. Run by `node server.js`
+// or required by the desktop app (electron/main.js); platform.js holds what differs per OS.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
-const os = require('node:os');
-const { spawn, execFile } = require('node:child_process');
+const platform = require('./platform');
 const claude = require('./claude');
 const vault = require('./vault');
 
 const PORT = Number(process.env.BACKLOGS_PORT || 6400);
 const FIRST_FREE_PORT = 6430;
-const HOME = os.homedir();
-const DATA_DIR = path.join(HOME, 'Library/Application Support/Backlogs');
+const { HOME, DATA_DIR } = platform;
 const LIST = path.join(DATA_DIR, 'projects.json');
 const PUBLIC = path.join(__dirname, 'public');
 const ORIGINS = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
@@ -22,8 +21,6 @@ const VENDOR = {
 	'/vendor/marked.js': 'marked/lib/marked.umd.js',
 	'/vendor/purify.js': 'dompurify/dist/purify.min.js',
 };
-const VSCODE = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
-const CHROME = '/Applications/Google Chrome.app';
 const IMAGES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 const TEXT = /\.(md|txt|js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|php|py|rb|sh|zsh|yml|yaml|toml|xml|swift|go|rs|c|h|java|kt|sql)$/i;
 // The home's general chat: a Claude Code conversation outside any project, in the home folder (as `claude` opened in a new Terminal window).
@@ -164,7 +161,7 @@ function anchorDay(dir, task) {
 }
 
 function run(args, cwd) {
-	return new Promise((resolve, reject) => execFile('backlog', args, { cwd }, (error, out) => (error ? reject(error) : resolve(out))));
+	return new Promise((resolve, reject) => platform.runBacklog(args, cwd, (error, out) => (error ? reject(error) : resolve(out))));
 }
 
 // A recurring task marked Done gets its next occurrence; the done one loses its label, so it happens once.
@@ -231,7 +228,7 @@ function listening(port) {
 
 async function start(project) {
 	if (!(await listening(project.port))) {
-		const child = spawn('backlog', ['browser', '--port', String(project.port), '--no-open'], { cwd: project.dir, stdio: 'ignore' });
+		const child = platform.spawnBacklog(['browser', '--port', String(project.port), '--no-open'], project.dir);
 		child.on('exit', () => boards.delete(project.port));
 		boards.set(project.port, child);
 		for (let i = 0; i < 50 && !(await listening(project.port)); i++) await new Promise((r) => setTimeout(r, 100));
@@ -243,21 +240,14 @@ function stop(port) {
 	boards.get(port)?.kill();
 }
 
-// macOS folder dialog; resolves to a path, or null when cancelled.
-function pickFolder() {
-	// Shown by System Events, already running: `tell me to activate` takes osascript ~2 s to become an app.
-	const script = 'tell application "System Events"\nactivate\nPOSIX path of (choose folder with prompt "Project folder (a board is created in it if it has none)")\nend tell';
-	return new Promise((resolve) => execFile('osascript', ['-e', script], (error, out) => resolve(error ? null : out.trim().replace(/\/$/, ''))));
-}
-
 function init(dir) {
 	const args = ['init', path.basename(dir), '--defaults', '--integration-mode', 'none'];
 	if (!fs.existsSync(path.join(dir, '.git'))) args.push('--no-git');
-	return new Promise((resolve, reject) => execFile('backlog', args, { cwd: dir }, (error) => (error ? reject(error) : resolve())));
+	return new Promise((resolve, reject) => platform.runBacklog(args, dir, (error) => (error ? reject(error) : resolve())));
 }
 
 async function add() {
-	const dir = await pickFolder();
+	const dir = await platform.pickFolder();
 	if (!dir) return null;
 	const list = load();
 	if (!list.some((p) => p.dir === dir)) {
@@ -291,15 +281,14 @@ function localPath(project, ref) {
 	return { file: path.resolve(project.dir, text), line };
 }
 
-// Opens a web link in the default browser, or a file: an HTML page in Chrome (Safari without it), code at its line in VS Code,
+// Opens a web link in the default browser, or a file: an HTML page in Chrome (else the default browser), code at its line in VS Code,
 // anything else in its default app (folders in Finder).
 function openLocal(project, ref) {
-	if (/^(https?|mailto):/i.test(ref)) return execFile('open', [ref]), true;
+	if (/^(https?|mailto):/i.test(ref)) return platform.open(ref), true;
 	const { file, line } = localPath(project, ref);
 	if (!fs.existsSync(file)) return false;
-	if (/\.html?$/i.test(file)) execFile('open', ['-a', fs.existsSync(CHROME) ? CHROME : 'Safari', file]); // a page (a mockup): shown, not edited
-	else if (TEXT.test(file) && fs.existsSync(VSCODE)) execFile(VSCODE, ['-g', line ? `${file}:${line}` : file]);
-	else execFile('open', [file]);
+	if (/\.html?$/i.test(file)) platform.openPage(file); // a page (a mockup): shown, not edited
+	else if (!(TEXT.test(file) && platform.openCode(file, line))) platform.open(file);
 	return true;
 }
 
@@ -335,7 +324,7 @@ async function api(req, res) {
 		return send(res, 200, {});
 	}
 	if (req.method === 'POST' && action === 'code') {
-		execFile('open', ['-a', 'Visual Studio Code', project.dir]);
+		platform.openFolderInCode(project.dir);
 		return send(res, 200, {});
 	}
 	if (req.method === 'GET' && action === 'image') return serveImage(project, url.searchParams.get('path'), res);
@@ -374,8 +363,10 @@ const BOOT = String(Date.now());
 const listeners = new Set();
 let pending, changed;
 const stamps = new Map(); // file -> last modification time seen
-for (const file of fs.readdirSync(PUBLIC, { recursive: true })) stamps.set(file, fs.statSync(path.join(PUBLIC, file)).mtimeMs);
-fs.watch(PUBLIC, { recursive: true }, (event, file) => {
+// Only from a source checkout: the packaged app's files never change (and live in an asar archive).
+const watching = !__dirname.includes('.asar');
+if (watching) for (const file of fs.readdirSync(PUBLIC, { recursive: true })) stamps.set(file, fs.statSync(path.join(PUBLIC, file)).mtimeMs);
+if (watching) fs.watch(PUBLIC, { recursive: true }, (event, file) => {
 	// Only code and styles, and only real edits: opening a file (an image from the chat) touches its metadata.
 	if (!/\.(js|html|css)$/.test(file || '')) return;
 	const time = fs.statSync(path.join(PUBLIC, file), { throwIfNoEntry: false })?.mtimeMs;
@@ -402,15 +393,21 @@ const server = http.createServer((req, res) => {
 	else if (req.url.startsWith('/api/')) api(req, res).catch((error) => send(res, 500, { error: error.message }));
 	else serveFile(req, res);
 });
+fs.mkdirSync(DATA_DIR, { recursive: true });
 vault.init(DATA_DIR);
 claude.attach(server, (port) => (port === GENERAL.port ? GENERAL : load().find((p) => String(p.port) === port)), ORIGINS, DATA_DIR);
-server.listen(PORT, '127.0.0.1', () => console.log(`Backlog Hub on http://localhost:${PORT}`));
+// Resolves once listening (the desktop app waits for it before loading the page).
+const ready = new Promise((resolve, reject) => {
+	server.once('error', reject);
+	server.listen(PORT, '127.0.0.1', () => (console.log(`Backlog Hub on http://localhost:${PORT}`), resolve()));
+});
 
-for (const signal of ['SIGINT', 'SIGTERM']) {
-	process.on(signal, () => {
-		for (const child of boards.values()) child.kill();
-		claude.stopAll();
-		vault.lockAllSync();
-		process.exit(0);
-	});
+// Boards, Claude conversations and unlocked docs end with the server.
+function shutdown() {
+	for (const child of boards.values()) child.kill();
+	claude.stopAll();
+	vault.lockAllSync();
 }
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => (shutdown(), process.exit(0)));
+
+module.exports = { ready, shutdown, PORT };

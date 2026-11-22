@@ -4,8 +4,8 @@
 // and is resumed from its transcript after a restart.
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFile } = require('node:child_process');
 const { WebSocketServer } = require('ws');
+const platform = require('./platform');
 
 const sdk = import('@anthropic-ai/claude-agent-sdk'); // ESM only
 const MODES = ['default', 'acceptEdits', 'plan', 'auto'];
@@ -117,7 +117,7 @@ async function loadCommands(chat) {
 	if (commands.has(chat.project.dir)) return;
 	commands.set(chat.project.dir, []);
 	const { query } = await sdk;
-	const q = query({ prompt: (async function* () { await new Promise(() => {}); })(), options: { cwd: chat.project.dir, systemPrompt: { type: 'preset', preset: 'claude_code' }, persistSession: false, stderr: () => {} } });
+	const q = query({ prompt: (async function* () { await new Promise(() => {}); })(), options: { cwd: chat.project.dir, systemPrompt: { type: 'preset', preset: 'claude_code' }, persistSession: false, pathToClaudeCodeExecutable: platform.claude(), stderr: () => {} } });
 	try {
 		setCommands(chat, await q.supportedCommands());
 		if (!models.length) setModels(await q.supportedModels()), emit(chat, info(chat));
@@ -184,6 +184,7 @@ async function run(chat) {
 			permissionMode: chat.mode || undefined, // else the user's settings decide
 			model: chat.choice || undefined, // else the default model
 			canUseTool: canUseTool(chat),
+			pathToClaudeCodeExecutable: platform.claude(), // the user's signed-in CLI; else the SDK's own
 			stderr: () => {},
 		},
 	});
@@ -316,16 +317,10 @@ function attach(server, findProject, origins, dataDir) {
 	});
 }
 
-// The same conversation in Terminal.app.
+// The same conversation in a terminal window.
 function openInTerminal(project) {
 	const id = chats.get(project.port)?.sessionId || remembered()[project.dir];
-	const script = `on run argv
-	tell application "Terminal"
-		activate
-		do script "cd " & quoted form of (item 1 of argv) & " && claude" & (item 2 of argv)
-	end tell
-end run`;
-	execFile('osascript', ['-e', script, project.dir, id ? ` --resume ${id}` : '']);
+	platform.terminal(project.dir, id ? `--resume ${id}` : '');
 }
 
 module.exports = { attach, stop, sessions, openInTerminal, stopAll: () => [...chats.keys()].forEach(stop) };

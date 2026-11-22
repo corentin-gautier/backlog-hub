@@ -1,12 +1,14 @@
 // Encrypted docs: a doc marked here keeps its body encrypted on disk (vault/backlogs-vault, a
 // Secure Enclave key). Unlocking a project asks for Touch ID and decrypts its marked docs in
 // place; they lock again after RELOCK_MS, when the project's tab closes, and when the server
-// starts or stops.
+// starts or stops. macOS only: elsewhere no doc can be marked.
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFile, execFileSync } = require('node:child_process');
 
-const BIN = path.join(__dirname, 'vault/backlogs-vault');
+// Built from vault/vault.swift on first use from a source checkout; shipped prebuilt in the desktop app (VAULT_BIN).
+const BIN = process.env.VAULT_BIN || path.join(__dirname, 'vault/backlogs-vault');
+const AVAILABLE = process.platform === 'darwin';
 const MARKER = '<!-- backlogs-vault v1 ';
 const RELOCK_MS = 5 * 60 * 1000;
 let LIST;
@@ -32,6 +34,7 @@ function docs(project) {
 }
 
 function status(project) {
+	if (!AVAILABLE) return { docs: [], until: null, unavailable: true };
 	const until = timers.get(project.dir)?.until || null;
 	return { docs: docs(project), until: ofProject(project).some((f) => !isLocked(f)) ? until : null };
 }
@@ -52,6 +55,7 @@ async function unlock(project, files = ofProject(project).filter(isLocked)) {
 
 // A doc is given by its id (the board's doc page) or its file.
 async function act(project, { do: action, id, file }) {
+	if (!AVAILABLE) return status(project);
 	const doc = docs(project).find((d) => (id ? d.id === String(id).toLowerCase() : d.file === file));
 	file = doc?.file;
 	if (action === 'lock') await lock(project);
@@ -69,12 +73,14 @@ async function act(project, { do: action, id, file }) {
 
 // At start and at exit: every marked doc encrypted, whatever happened before.
 function lockAllSync() {
+	if (!AVAILABLE) return;
 	const files = marked().filter((f) => fs.existsSync(f) && !isLocked(f));
 	if (files.length) execFileSync(BIN, ['lock', ...files]);
 }
 
 function init(dataDir) {
 	LIST = path.join(dataDir, 'vault.json');
+	if (!AVAILABLE) return;
 	if (!fs.existsSync(BIN)) execFileSync('swiftc', ['-O', path.join(__dirname, 'vault/vault.swift'), '-o', BIN]);
 	lockAllSync();
 }

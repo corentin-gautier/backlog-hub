@@ -11,22 +11,24 @@ updated_date: '2026-11-22T10:02:48Z'
 
 | How | Command |
 | --- | --- |
-| At every login | `./install.sh`: launchd agent `local.backlogs` (`~/Library/LaunchAgents/local.backlogs.plist`, `RunAtLoad`, `KeepAlive`), then builds and opens the Mac app |
-| Rebuild the Mac app | `scripts/build-app.sh` |
+| At every login | `./install.sh`: launchd agent `local.backlogs` (`~/Library/LaunchAgents/local.backlogs.plist`, `RunAtLoad`, `KeepAlive`), then opens http://localhost:6400 |
+| Desktop app on the checkout | `npm run app` |
+| Installers | `scripts/release.sh` |
 | Remove the agent | `./install.sh --uninstall` |
 | By hand | `npm install && node server.js` |
 
 - `install.sh` runs `npm install` with the agent's Node. The agent's `PATH` holds the `backlog` CLI's folder; Node from fnm's default alias when present.
 - Log: `~/Library/Logs/Backlogs.log`.
 
-## Mac app
+## Desktop app
 
-`mac/BacklogHub.swift`, built by `scripts/build-app.sh` (swiftc, icon from `public/icon.svg` via rsvg-convert and iconutil, ad hoc signed) into `/Applications/Backlog Hub.app`. A window with a WebKit view on http://localhost:6400; the server stays the launchd agent's.
-- No title bar: the system's one, even transparent, catches drags at the top of the window and broke reordering tabs. It is hidden and the window buttons are the app's own (`WindowButtons`), centred on the tabs. The page gets the `mac-app` class (room for them in `style.css`); a click on an empty spot of the tab bar moves the window, a double click zooms it.
-- Closing the window hides it (conversations stay loaded); the Dock icon brings it back. Size and place remembered.
-- Links outside localhost open in the default browser. `alert`, `confirm`, `prompt` and file pickers are native sheets.
-- Menus: Edit (copy, paste…), View (Home Cmd+Shift+H, Reload Cmd+R, zoom Cmd+0/+/-), Window. Web Inspector: right click › Inspect Element.
-- Theme and palette are stored by the app's web view, apart from any browser.
+Electron, macOS and Windows: `electron/main.js` runs `server.js` in the app's Node and shows the page; when a server already answers on the port (a checkout run by `install.sh`), it shows that one. `platform.js` holds what differs per OS (data folder, open, VS Code, Chrome, terminal, folder picker; the app plugs in its own `shell` and `dialog`).
+- Shipped tools (`resources/bin`): the `backlog` CLI of each platform (npm `backlog.md-<os>-<arch>`, used only when none is on the PATH) and, on macOS, the vault binary. The Agent SDK's own Claude Code binary (~350 MB) is left out: the app uses the user's `claude`. A Mac app gets the login shell's PATH.
+- No title bar: the tab bar is the window's (`-webkit-app-region`). macOS: window buttons on its left (`trafficLightPosition`), Windows: drawn over its right (`titleBarOverlay`, coloured from the page's `theme-color`). `electron/preload.js` adds `app-darwin` / `app-win32` to `<html>` for `style.css`.
+- Closing the window hides it (Dock icon, or the tray on Windows, brings it back). Opens at login from the first run in Applications (menu: Open at Login). Size and place remembered (`settings.json` in the app's data folder).
+- Links outside localhost open in the default browser.
+- Encrypted docs: macOS only (`vault.js` reports them unavailable elsewhere).
+- Build: `scripts/release.sh` (header lists the modes): icons, tools, `electron-builder` (config in `package.json`), notarization with the `backlog-hub` notarytool keychain profile, `--publish` for a GitHub release. Output in `dist/`.
 
 ## Project list
 

@@ -1,30 +1,33 @@
 # Backlog Hub
 
-A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on your Mac: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none).
+A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board on your computer: a card per project with its task counts, a tab per open project, and a button to add a folder (a board is created in it if it has none). Site: https://corentingautier.dev/backlog-hub/
 
 - **Projects**: cards grouped in categories you name and order by drag and drop.
 - **Coming up**: open tasks with a due date, across every project, soonest first. A task labelled `monthly`, `quarterly` or `yearly` comes back once done.
-- **Claude Code** beside each board (✻ Claude, or Ctrl+`), and a general chat on the home page. A conversation keeps running while the page is closed.
-- **Encrypted docs**: a doc's Encrypt button keeps it encrypted on disk, unlocked with Touch ID (needs the fork below).
+- **Claude Code** beside each board (✻ Claude, or Ctrl+`), and a general chat on the home page. A conversation keeps running while the window is closed.
+- **Encrypted docs** (macOS): a doc's Encrypt button keeps it encrypted on disk, unlocked with Touch ID (needs the fork below).
 
-macOS only.
+## Download
 
-## Requirements
+From the [latest release](https://github.com/corentin-gautier/backlog-hub/releases/latest):
 
-- [Node](https://nodejs.org) 20 or later.
-- The `backlog` CLI: `brew install backlog-md` or `npm i -g backlog.md`.
-- For the Claude Code panel: the [`claude` CLI](https://docs.claude.com/en/docs/claude-code), signed in.
-- The Xcode Command Line Tools (`xcode-select --install`), for `swiftc`: the Mac app and encrypted docs.
+- **macOS**: `Backlog-Hub-<version>-arm64.dmg` (Apple silicon) or `-x64.dmg` (Intel). Drag the app to Applications.
+- **Windows**: `Backlog-Hub-Setup-<version>.exe`. The installer is not signed: Windows SmartScreen asks to confirm (More info › Run anyway).
 
-## Install
+Everything ships inside: the app's own Node and the `backlog` CLI (a `backlog` on your PATH, such as the fork, wins). The app opens at login (turn it off in its menu, or the tray menu on Windows); closing its window keeps it running. For the Claude Code panel, install the [`claude` CLI](https://docs.claude.com/en/docs/claude-code) and sign in.
+
+## From source (macOS)
+
+Needs [Node](https://nodejs.org) 20+, the `backlog` CLI (`brew install backlog-md` or `npm i -g backlog.md`) and, for encrypted docs, the Xcode Command Line Tools (`xcode-select --install`).
 
 ```sh
 git clone https://github.com/corentin-gautier/backlog-hub.git && cd backlog-hub
-./install.sh            # starts the server at every login, installs Backlog Hub.app in /Applications and opens it
+./install.sh            # starts the server at every login, opens http://localhost:6400
 ./install.sh --uninstall
+npm run app             # the desktop app on this checkout (it uses the server above when it runs)
 ```
 
-The app is a native window on the page (needs the Xcode Command Line Tools). `scripts/build-app.sh` rebuilds it alone. The page also works in any browser at http://localhost:6400.
+Build the installers with `scripts/release.sh` (see its header: signing, notarization, `--publish`).
 
 ## Optional: the Backlog.md fork
 
