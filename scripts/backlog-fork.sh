@@ -29,4 +29,5 @@ if [[ $(readlink $LINK) != $FORK/dist/backlog ]]; then
 	ln -sf $FORK/dist/backlog $LINK
 fi
 echo "backlog $(backlog --version) from $FORK ($(git rev-parse --short HEAD))"
-echo "Restart the boards to use it: close their tabs in Backlog Hub, or restart it."
+# Running boards keep the old binary: stop them, the hub starts them again with the new one.
+pkill -f "backlog browser --port" && echo "Boards stopped: reload Backlog Hub (Cmd+R) to start them with the new build."

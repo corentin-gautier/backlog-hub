@@ -21,5 +21,5 @@ Backlog.md is a compiled binary, so what Backlog Hub changes in the boards lives
 - `scripts/backlog-fork.sh`: builds the fork and links it as `backlog`.
 - `scripts/backlog-fork.sh --update`: rebases the fork on upstream's `main` and pushes it first, then builds.
 - Without the clone, the script makes it from the fork.
-- Then restart the boards: close their tabs, or restart Backlog Hub.
+- The script then stops the running boards (closing a tab does not); reload Backlog Hub (Cmd+R) to start them with the new build.
 - Needs Bun (`brew install oven-sh/bun/bun`).
