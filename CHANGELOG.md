@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 — 2026-11-22
+
+### Features
+
+- VS Code button only for projects that use VS Code ([dbc3972](https://github.com/corentin-gautier/backlog-hub/commit/dbc3972))
+
 ## 0.1.0 — 2026-11-22
 
 First release, as a desktop app for macOS and Windows.
