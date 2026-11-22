@@ -9,6 +9,7 @@ const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
 const claude = require('./claude');
 const vault = require('./vault');
+const proxy = require('./proxy');
 
 const PORT = Number(process.env.BACKLOGS_PORT || 6400);
 const FIRST_FREE_PORT = 6430;
@@ -222,7 +223,7 @@ async function start(project) {
 		boards.set(project.port, child);
 		for (let i = 0; i < 50 && !(await listening(project.port)); i++) await new Promise((r) => setTimeout(r, 100));
 	}
-	return `http://localhost:${project.port}`;
+	return `http://localhost:${await proxy.open(project.port)}`;
 }
 
 function stop(port) {

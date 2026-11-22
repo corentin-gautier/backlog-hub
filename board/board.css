@@ -1,0 +1,4 @@
+/* Added to every board's page by proxy.js. */
+
+/* The theme follows macOS (board.js): no manual toggle. */
+button[aria-label^="Switch to"] { display: none !important; }
