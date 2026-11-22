@@ -20,7 +20,8 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Top row
 
 - Coming up, In progress and Claude side by side in equal columns (stacked under 980px wide).
-- Toggle chips beside "My projects" (with the lists' counts) show or hide each part; the shown ones share the row. Hidden parts are kept per browser (`off` in localStorage). A list with no task is hidden, and so is its chip.
+- Toggle chips beside "My projects" show or hide each part; the shown ones share the row. Hidden parts are kept per browser (`off` in localStorage). A list with no task is hidden, and so is its chip.
+- The general chat's header reads "General conversation" (the part's heading already says Claude).
 - The lists stretch to the row's height; the chat fills its box, 300px high at least, 460px when it is alone.
 
 ## Coming up

@@ -224,7 +224,6 @@ function renderTop() {
 		const empty = name !== 'claude' && !(name === 'alerts' ? alerts : doing).length;
 		toggles[name].hidden = empty;
 		toggles[name].setAttribute('aria-pressed', !off.has(name));
-		toggles[name].querySelector('.count').textContent = empty || name === 'claude' ? '' : el.querySelector('.count').textContent;
 		el.hidden = empty || off.has(name);
 	}
 	const shown = parts.filter((el) => !el.hidden);
@@ -236,7 +235,7 @@ function renderTop() {
 for (const part of document.querySelectorAll('#top .part')) {
 	const name = part.dataset.part;
 	const button = (toggles[name] = document.createElement('button'));
-	button.innerHTML = '<i class="tick"></i><span></span><span class="count"></span>';
+	button.innerHTML = '<i class="tick"></i><span></span>';
 	button.children[1].textContent = part.querySelector('h2').firstChild.textContent.trim();
 	button.title = 'Show or hide on the home';
 	button.onclick = () => {

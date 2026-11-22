@@ -462,10 +462,10 @@ const Claude = (() => {
 			<form class="composer">
 				<div class="slash" hidden></div>
 				<div class="shots" hidden></div>
-				<textarea rows="1" placeholder="Message Claude… (/ commands, ↵ send, ⇧↵ new line)"></textarea>
+				<textarea rows="1" placeholder="Message Claude…  / for commands" title="↵ send, ⇧↵ new line, Esc stop"></textarea>
 				<div class="bar"><button type="button" class="chip mode"></button><button type="button" class="chip model" hidden></button><button class="send idle"></button></div>
 			</form>`;
-		el.querySelector('.where').textContent = `· ${project?.place || ''}`;
+		el.querySelector('.where').textContent = box ? 'General conversation' : `· ${project?.place || ''}`;
 		(box || frames[port]).append(el);
 
 		const panel = (panels[port] = {
