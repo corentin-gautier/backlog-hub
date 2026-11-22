@@ -4,8 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Window title bar, the same as the top bar. -->
-<meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#030712" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f4f6">
+<!-- The theme before the first paint (kept up to date by app.js). -->
+<script>
+	try { var t = JSON.parse(localStorage.getItem('theme')); } catch (e) {}
+	document.documentElement.dataset.theme = t === 'light' || t === 'dark' ? t : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+</script>
 <title>Backlog Hub</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -17,10 +21,9 @@
 	<div id="tabs"><button data-home title="Home"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 7.2 8 2.8l5.5 4.4V13a.5.5 0 0 1-.5.5H9.8V10H6.2v3.5H3a.5.5 0 0 1-.5-.5Z"/></svg>Home</button></div>
 	<button id="claude" title="Claude in this project (Ctrl+`)" hidden><span class="spark">✻</span>Claude</button>
 	<button id="code" title="Open the project in VS Code" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg>VS Code</button>
-	<button id="add" title="Add a project"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
 </nav>
 <section id="home">
-	<div id="today"></div>
+	<div class="dateline"><div id="today"></div><div id="theme" role="radiogroup" aria-label="Theme"></div></div>
 	<div class="masthead"><h1>My projects</h1><div id="toggles" role="group" aria-label="Show on the home"></div></div>
 	<div id="top">
 		<section class="part" data-part="alerts" hidden><h2>Coming up <span class="count"></span></h2><div class="alerts"></div></section>
@@ -28,7 +31,13 @@
 		<section class="part" data-part="claude"><h2>Claude</h2><div id="general"></div></section>
 	</div>
 	<div id="groups"></div>
-	<button id="new-category">+ New category</button>
+	<div id="fab">
+		<div class="menu" hidden>
+			<button data-act="project"><svg viewBox="0 0 16 16"><path d="M2 4.5c0-.6.4-1 1-1h3.2l1.5 1.6H13c.6 0 1 .4 1 1v6.4c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1Z"/></svg>Add a project</button>
+			<button data-act="category"><svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h6"/></svg>New category</button>
+		</div>
+		<button class="main" title="Add" aria-expanded="false"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></button>
+	</div>
 </section>
 <script src="vendor/marked.js"></script>
 <script src="vendor/purify.js"></script>

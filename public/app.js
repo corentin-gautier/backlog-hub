@@ -42,18 +42,30 @@ function render() {
 	highlight();
 }
 
-// A section of cards; '' is the uncategorized one, last, holding the add card.
+// Categories folded down to their heading, per browser.
+const foldedCats = new Set(stored('foldedCats', []));
+function fold(name, value) {
+	value ? foldedCats.add(name) : foldedCats.delete(name);
+	store('foldedCats', [...foldedCats]);
+}
+
+// A section of cards; '' is the uncategorized one, last, shown when it holds a project or while one is dragged.
 function group(name, list) {
 	const el = document.createElement('section');
 	el.className = 'group';
 	el.dataset.cat = name;
-	el.innerHTML = `<h2><span class="cat"></span><span class="count"></span></h2><div class="cards"></div>`;
+	el.innerHTML = `<h2><button class="fold" title="Fold or unfold"><i class="chevron"></i></button><span class="cat"></span><span class="count"></span></h2><div class="cards"></div>`;
 	el.querySelector('.cat').textContent = name || 'Uncategorized';
 	el.querySelector('.count').textContent = list.length;
 	el.querySelector('.cards').append(...list.map(card));
+	el.classList.toggle('folded', foldedCats.has(name));
+	el.querySelector('.fold').onclick = () => {
+		fold(name, !foldedCats.has(name));
+		el.classList.toggle('folded', foldedCats.has(name));
+	};
 	if (!name) {
 		el.querySelector('h2').classList.add('none');
-		el.querySelector('.cards').append(newCard());
+		el.classList.toggle('empty', !list.length);
 		return el;
 	}
 	const head = el.querySelector('h2');
@@ -89,6 +101,7 @@ function rename(el, fresh) {
 		const name = label.textContent.trim();
 		if (!name || name === before || categories.includes(name)) return fresh ? persist() : render();
 		categories = categories.map((c) => (c === before ? name : c));
+		if (foldedCats.has(before)) fold(before, false), fold(name, true);
 		projects.forEach((p) => p.category === before && (p.category = name));
 		persist();
 	};
@@ -122,12 +135,13 @@ function draggable(el, kind) {
 		dragged.dataset.kind = kind;
 		event.dataTransfer.effectAllowed = 'move';
 		if (kind === 'group') event.dataTransfer.setDragImage(el, 20, 12);
-		requestAnimationFrame(() => dragged?.classList.add('dragging'));
+		requestAnimationFrame(() => (dragged?.classList.add('dragging'), document.body.classList.toggle('moving-card', kind === 'card')));
 	});
 	el.addEventListener('dragend', () => {
 		if (!dragged) return;
 		const kind = dragged.dataset.kind;
 		dragged.classList.remove('dragging');
+		document.body.classList.remove('moving-card');
 		document.querySelectorAll('.target').forEach((t) => t.classList.remove('target'));
 		dragged = null;
 		if (kind === 'tab') {
@@ -154,9 +168,9 @@ function over(event) {
 		const cards = event.target.closest('.cards') || event.target.closest('.group')?.querySelector('.cards');
 		if (!cards) return;
 		event.preventDefault();
-		const item = event.target.closest('.card:not(.new)');
+		const item = event.target.closest('.card');
 		if (item && cards.contains(item)) place(event, item);
-		else if (dragged.parentElement !== cards) cards.insertBefore(dragged, cards.querySelector('.new'));
+		else if (dragged.parentElement !== cards) cards.append(dragged);
 		document.querySelectorAll('.target').forEach((t) => t !== cards.parentElement && t.classList.remove('target'));
 		cards.parentElement.classList.add('target');
 	} else if (kind === 'group') {
@@ -371,14 +385,6 @@ function card(p) {
 	return el;
 }
 
-function newCard() {
-	const el = document.createElement('button');
-	el.className = 'card new';
-	el.textContent = '+ Add a project';
-	el.onclick = add;
-	return el;
-}
-
 function highlight() {
 	document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', (b.dataset.port || '') === current));
 	$('#home').classList.toggle('on', !current);
@@ -430,8 +436,59 @@ const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: '
 $('#today').textContent = today;
 
 $('#tabs [data-home]').onclick = () => show('');
-$('#add').onclick = add;
-$('#new-category').onclick = newCategory;
+
+// ---- the add button (bottom right of the home): a project or a category ----
+const fab = $('#fab');
+function openFab(value) {
+	fab.querySelector('.menu').hidden = !value;
+	fab.classList.toggle('open', value);
+	fab.querySelector('.main').setAttribute('aria-expanded', value);
+}
+fab.querySelector('.main').onclick = () => openFab(fab.querySelector('.menu').hidden);
+fab.querySelector('[data-act=project]').onclick = () => (openFab(false), add());
+fab.querySelector('[data-act=category]').onclick = () => (openFab(false), newCategory());
+document.addEventListener('pointerdown', (event) => !fab.contains(event.target) && openFab(false));
+document.addEventListener('keydown', (event) => event.key === 'Escape' && openFab(false));
+
+// ---- theme: light, dark or the system's, per browser; the boards follow it (Backlog.md fork) ----
+const THEMES = {
+	light: 'M8 4.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4ZM8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9',
+	system: 'M2 3.5h12v7.5H2ZM6 13.5h4M8 11v2.5',
+	dark: 'M13.2 9.6A5.5 5.5 0 0 1 6.4 2.8a5.5 5.5 0 1 0 6.8 6.8Z',
+};
+let theme = stored('theme', 'system');
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+const shade = () => (theme === 'system' ? (darkQuery.matches ? 'dark' : 'light') : theme);
+function applyTheme() {
+	document.documentElement.dataset.theme = shade();
+	document.querySelector('meta[name=theme-color]').content = shade() === 'dark' ? '#030712' : '#f3f4f6';
+	document.querySelectorAll('#theme button').forEach((b) => b.setAttribute('aria-checked', b.dataset.theme === theme));
+	for (const pane of Object.values(frames)) pane.querySelector('iframe')?.contentWindow?.postMessage({ backlogHub: 'theme', theme: shade() }, '*');
+}
+function setTheme(value) {
+	theme = value;
+	store('theme', value);
+	applyTheme();
+}
+for (const [name, d] of Object.entries(THEMES)) {
+	const button = document.createElement('button');
+	button.dataset.theme = name;
+	button.setAttribute('role', 'radio');
+	button.title = { light: 'Light', system: 'Same as macOS', dark: 'Dark' }[name];
+	button.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}"/></svg>`;
+	button.onclick = () => setTheme(name);
+	$('#theme').append(button);
+}
+darkQuery.addEventListener('change', applyTheme);
+// A board asks for the theme when it loads, and its own toggle changes it here.
+addEventListener('message', (event) => {
+	const message = event.data;
+	if (message?.backlogHub !== 'theme') return;
+	if (!Object.values(frames).some((pane) => pane.querySelector('iframe')?.contentWindow === event.source)) return;
+	if (message.do === 'set' && ['light', 'dark'].includes(message.theme)) setTheme(message.theme === (darkQuery.matches ? 'dark' : 'light') ? 'system' : message.theme);
+	else event.source.postMessage({ backlogHub: 'theme', theme: shade() }, '*');
+});
+applyTheme();
 $('#claude').onclick = () => Claude.toggle(current);
 $('#code').onclick = () => api(`projects/${current}/code`, 'POST');
 addEventListener('keydown', (event) => {

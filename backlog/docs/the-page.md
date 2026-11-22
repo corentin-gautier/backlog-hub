@@ -8,12 +8,19 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 
 ## Layout
 
-- Top bar: a Home tab, one tab per open project, and a + button to add a project.
-- Home: today's date (in the browser's language), "My projects" with the top row's toggles at its right, a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one, and the "Add a project" card), then a "+ New category" button.
+- Top bar: a Home tab, then one tab per open project.
+- Home: today's date (in the browser's language) with the theme switch at its right, "My projects" with the top row's toggles at its right, a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one; shown only when it has some, or while a card is dragged).
+- The + button at the bottom right of the home opens a menu: Add a project, New category. Esc or a click elsewhere closes it.
+
+## Theme
+
+- Light, the system's (default) or dark, picked with the switch beside the date; kept per browser (`theme` in localStorage) and applied before the first paint (inline script in `index.html`, `data-theme` on `<html>`).
+- The boards follow it: a board asks for the theme on load and gets every change (postMessage `{ backlogHub: 'theme' }`); its own toggle changes the hub's theme ([Backlog.md fork](/documentation/4/backlog-fork)).
 
 ## Categories and order
 
 - Drag a card to reorder it or move it to another section (its category changes); drag a section's heading to reorder the categories; drag a tab to reorder the tabs.
+- The chevron before a category's name folds it down to its heading, and back; folded categories are kept per browser (`foldedCats` in localStorage).
 - Hovering a heading shows Rename (edit in place, Enter or click away to save, Escape to cancel) and Delete (its projects go to "Uncategorized").
 - Categories and the cards' order are saved in `projects.json` (PUT `/api/layout`), so every browser shows the same; the tabs' order is per browser.
 
