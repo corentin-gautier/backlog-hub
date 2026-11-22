@@ -204,7 +204,7 @@
 			<a class="btn primary" href="#install">Download</a>
 			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View the source</a>
 		</div>
-		<div class="note">Free · <a href="https://ko-fi.com/corentingautier">☕ support it on Ko-fi</a> · macOS 12+ · Windows 10+ · MIT licence</div>
+		<div class="note">Free · <a href="https://ko-fi.com/corentingautier">☕ support it on Ko-fi</a> · macOS 13+ · Windows 10+ · MIT licence</div>
 
 		<div class="shot">
 			<div class="win">
@@ -338,7 +338,12 @@
 				<div class="step"><div><h3>Bring Claude in</h3><p>For the Claude Code panel, install the <code>claude</code> command line and sign in once.</p></div></div>
 			</div>
 			<div>
-<pre><span class="c"># Or from source, on a Mac</span>
+<pre><span class="c"># Or with Homebrew</span>
+<span class="p">$ </span>brew tap corentin-gautier/tap
+<span class="p">$ </span>brew trust --cask corentin-gautier/tap/backlog-hub
+<span class="p">$ </span>brew install --cask corentin-gautier/tap/backlog-hub
+
+<span class="c"># Or from source, on a Mac</span>
 <span class="p">$ </span>brew install backlog-md
 <span class="p">$ </span>git clone https://github.com/corentin-gautier/backlog-hub.git
 <span class="p">$ </span>cd backlog-hub && ./install.sh</pre>
