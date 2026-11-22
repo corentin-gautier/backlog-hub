@@ -145,6 +145,14 @@
 	.dl svg { width: 34px; height: 34px; fill: var(--text); flex: none; }
 	.dl b { display: block; font: 700 19px var(--sans); }
 	.dl small { color: var(--muted); font-size: 13.5px; }
+	/* Ko-fi */
+	.tip { display: flex; gap: 18px; align-items: flex-start; margin-top: 48px; padding: 24px 26px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+	.tip .glyph { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--accent-soft); }
+	.tip h3 { font-size: 19px; margin-bottom: 4px; }
+	.tip p { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+	.tip a { color: var(--accent-text); font-weight: 600; text-decoration: none; }
+	.tip a:hover { text-decoration: underline; }
+	.hero .note a { color: inherit; }
 	/* Install */
 	.install { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
 	.steps { counter-reset: s; display: grid; gap: 22px; }
@@ -196,7 +204,7 @@
 			<a class="btn primary" href="#install">Download</a>
 			<a class="btn ghost" href="https://github.com/corentin-gautier/backlog-hub">View the source</a>
 		</div>
-		<div class="note">macOS 12+ · Windows 10+ · MIT licence</div>
+		<div class="note">Free · <a href="https://ko-fi.com/corentingautier">☕ support it on Ko-fi</a> · macOS 12+ · Windows 10+ · MIT licence</div>
 
 		<div class="shot">
 			<div class="win">
@@ -337,6 +345,14 @@
 				<p class="req">From source: <a href="https://nodejs.org">Node</a> 20+, and the Xcode Command Line Tools (<code>xcode-select --install</code>) for encrypted docs.</p>
 			</div>
 		</div>
+		<aside class="tip">
+			<div class="glyph" aria-hidden="true">☕</div>
+			<div>
+				<h3>Enjoying Backlog Hub?</h3>
+				<p>Backlog Hub is free. If it’s useful to you, you can support its development with a coffee on Ko-fi. Thank you!</p>
+				<a href="https://ko-fi.com/corentingautier">Support me on Ko-fi →</a>
+			</div>
+		</aside>
 	</div>
 </section>
 
@@ -352,7 +368,7 @@
 </section>
 <footer>
 	<div class="wrap">
-		<span>Backlog Hub · MIT licence</span>
+		<span>Backlog Hub · MIT licence · <a href="https://corentingautier.dev/">Corentin Gautier</a> · <a href="https://ko-fi.com/corentingautier">Ko-fi</a></span>
 		<span>Built on <a href="https://github.com/MrLesk/Backlog.md">Backlog.md</a>. Not affiliated with Backlog.md or Anthropic.</span>
 	</div>
 </footer>
