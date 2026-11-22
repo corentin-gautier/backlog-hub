@@ -1,9 +1,10 @@
 ---
 id: TASK-1
 title: Edit docs directly in the board's preview
-status: To decide
+status: Done
 assignee: []
 created_date: '2026-11-22T09:15:00Z'
+updated_date: '2026-11-22T09:54:51Z'
 labels: []
 dependencies: []
 ordinal: 1000

@@ -33,7 +33,6 @@ type: specification
 ## Boards
 
 - A board starts the first time its tab opens: `backlog browser --port P --no-open` in the project folder.
-- The tab shows it through a proxy on P + 1000 (`proxy.js`): Backlog.md is a compiled binary, so the proxy adds `board/board.css` and `board/board.js` to its HTML (served under `/__backlogs/`); WebSockets pass through. They make the theme follow macOS: the saved `backlog-theme` is dropped before the page loads, the board's toggle is hidden and clicked when macOS switches.
 - A board already listening on its port (a VS Code task, say) is reused.
 - The server waits up to 5 s for the port, then returns its URL.
 - Boards started by the server stop when the project is removed or the server gets SIGINT / SIGTERM.
@@ -61,7 +60,7 @@ Read from `backlog/tasks/*.md` `status:` lines: `Done`, `In Progress`, anything 
 | `GET /api/projects` | Creates due recurring tasks, then `{ categories, projects, alerts }`: projects with name, place (`~`-relative), counts; alerts `[{ port, project, id, title, due, every }]` |
 | `POST /api/projects` | Folder dialog, add; returns `{ port, categories, projects }` |
 | `PUT /api/layout` | `{ categories, order: [{ port, category }] }`: saves categories and order |
-| `POST /api/projects/<port>/start` | Starts the board and its proxy; returns `{ url }` (the proxy's) |
+| `POST /api/projects/<port>/start` | Starts the board; returns `{ url }` |
 | `POST /api/projects/<port>/terminal` | Opens Terminal.app in the folder, running `claude --resume <current conversation>` |
 | `GET /api/projects/<port>/sessions` | The project's earlier conversations, newest first: `[{ id, title, at }]` |
 | `DELETE /api/projects/<port>/claude` | Stops the project's Claude Code |

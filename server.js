@@ -9,7 +9,6 @@ const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
 const claude = require('./claude');
 const vault = require('./vault');
-const proxy = require('./proxy');
 
 const PORT = Number(process.env.BACKLOGS_PORT || 6400);
 const FIRST_FREE_PORT = 6430;
@@ -26,6 +25,9 @@ const VENDOR = {
 const VSCODE = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
 const IMAGES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 const TEXT = /\.(md|txt|js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|php|py|rb|sh|zsh|yml|yaml|toml|xml|swift|go|rs|c|h|java|kt|sql)$/i;
+// The home's general chat: a Claude Code conversation in the folder for files that belong to no project.
+const GENERAL = { port: 'home', dir: path.join(HOME, 'Desktop/Claude'), place: 'Général' };
+fs.mkdirSync(GENERAL.dir, { recursive: true });
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 const boards = new Map(); // port -> child process started here
@@ -223,7 +225,7 @@ async function start(project) {
 		boards.set(project.port, child);
 		for (let i = 0; i < 50 && !(await listening(project.port)); i++) await new Promise((r) => setTimeout(r, 100));
 	}
-	return `http://localhost:${await proxy.open(project.port)}`;
+	return `http://localhost:${project.port}`;
 }
 
 function stop(port) {
@@ -300,7 +302,7 @@ async function api(req, res) {
 	const url = new URL(req.url, 'http://localhost');
 	const [, , resource, id, action] = url.pathname.split('/');
 	const list = load();
-	const project = list.find((p) => String(p.port) === id);
+	const project = id === GENERAL.port ? GENERAL : list.find((p) => String(p.port) === id);
 	// Changes only from the app's own page, never from another site open in the browser.
 	if (req.method !== 'GET' && !ORIGINS.includes(req.headers.origin)) return send(res, 403, {});
 	if (resource === 'layout' && req.method === 'PUT') {
@@ -332,7 +334,7 @@ async function api(req, res) {
 		claude.stop(project.port);
 		return send(res, 200, {});
 	}
-	if (req.method === 'DELETE' && !action) {
+	if (req.method === 'DELETE' && !action && project !== GENERAL) {
 		stop(project.port);
 		claude.stop(project.port);
 		save(list.filter((p) => p !== project));
@@ -388,7 +390,7 @@ const server = http.createServer((req, res) => {
 	else serveFile(req, res);
 });
 vault.init(DATA_DIR);
-claude.attach(server, (port) => load().find((p) => String(p.port) === port), ORIGINS, DATA_DIR);
+claude.attach(server, (port) => (port === GENERAL.port ? GENERAL : load().find((p) => String(p.port) === port)), ORIGINS, DATA_DIR);
 server.listen(PORT, '127.0.0.1', () => console.log(`Backlogs on http://localhost:${PORT}`));
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

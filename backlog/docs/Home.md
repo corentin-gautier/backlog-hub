@@ -10,3 +10,4 @@ A local home page for every Backlog.md board on this Mac: a card per project wit
 
 - [How it works](/documentation/2/how-it-works): server, API, project list, ports, boards started on demand
 - [The page](/documentation/3/the-page): tabs, cards, adding and removing a project, installing as an app
+- [Backlog.md fork](/documentation/4/backlog-fork): the boards' visual doc editor and macOS theme, how to build and update
