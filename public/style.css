@@ -207,6 +207,9 @@ body.resizing iframe { pointer-events: none; }
 .claude .chip[data-mode=plan] { --tint: oklch(0.6 0.118 184.704); } /* teal-600 */
 .claude .chip[data-mode=auto] { --tint: oklch(0.666 0.179 58.318); } /* amber-600 */
 .claude .chip.model { order: 1; margin-left: auto; }
+/* The send button stays at the right end, also before the model is known (its chip hidden until the first reply). */
+.claude .bar .send { margin-left: auto; }
+.claude .bar:has(.chip.model:not([hidden])) .send { margin-left: 0; }
 .claude .caret { width: 5px; height: 5px; margin: -2px 0 0 1px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); opacity: .7; }
 .claude .chip.open .caret { transform: rotate(-135deg); margin-top: 3px; }
 
