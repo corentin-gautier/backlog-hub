@@ -13,6 +13,7 @@ Backlog.md is a compiled binary, so what Backlog Hub changes in the boards lives
 - The Markdown button opens the former editor: source, title and path, with Save and Cancel.
 - The Markdown written back keeps the file's style: `-` lists, `---` under table headers, unpadded tables, bare links. The server itself drops the blank line after the front matter (as before).
 - A file changed elsewhere (Claude, git) while open reloads in the editor, unless an edit is waiting to be saved.
+- Inside Backlog Hub: encryption controls on the doc page and padlocks in the sidebar ([Encrypted docs](/documentation/5/encrypted-docs)).
 
 ## Build and update
 

@@ -288,17 +288,3 @@ nav button.dragging { opacity: .4; }
 .card.new { display: grid; place-items: center; min-height: 128px; background: none; border: 1.5px dashed var(--dash); box-shadow: none; color: var(--faint); }
 .card.new:hover { color: var(--text); transform: none; }
 .cards:empty::before { content: "Drag a project here"; grid-column: 1 / -1; display: grid; place-items: center; min-height: 60px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--faint); font-size: 13px; }
-
-/* Encrypted docs: the padlock's menu, under the top bar on the right. */
-#vault { width: 30px; padding: 0; justify-content: center; }
-#vault-menu { position: fixed; top: 58px; right: 10px; z-index: 20; width: 300px; max-height: 70vh; overflow: auto; background: var(--card); border: 1px solid var(--card-line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .15); font-size: 13px; }
-#vault-menu .top { padding: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
-#vault-menu p { margin: 0; color: var(--muted); }
-#vault-menu p.error { color: oklch(0.577 0.245 27.325); }
-#vault-menu button { font: inherit; font-weight: 500; height: 30px; border: 0; border-radius: 8px; color: #fff; background: var(--accent); cursor: pointer; }
-#vault-menu button:disabled { opacity: .6; cursor: default; }
-#vault-menu .docs { padding: 6px; }
-#vault-menu label { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 6px; cursor: pointer; }
-#vault-menu label:hover { background: var(--hover); }
-#vault-menu label span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#vault-menu svg { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }

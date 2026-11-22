@@ -5,7 +5,7 @@ A home page for every [Backlog.md](https://github.com/MrLesk/Backlog.md) board o
 - **Projects**: cards grouped in categories you name and order by drag and drop.
 - **Coming up**: open tasks with a due date, across every project, soonest first. A task labelled `monthly`, `quarterly` or `yearly` comes back once done.
 - **Claude Code** beside each board (✻ Claude, or Ctrl+`), and a general chat on the home page. A conversation keeps running while the page is closed.
-- **Encrypted docs**: the padlock keeps chosen docs encrypted on disk, unlocked with Touch ID.
+- **Encrypted docs**: a doc's Encrypt button keeps it encrypted on disk, unlocked with Touch ID (needs the fork below).
 
 macOS only.
 
@@ -28,7 +28,7 @@ Then install the page as an app: in Safari, File › Add to Dock; in Chrome, the
 
 ## Optional: the Backlog.md fork
 
-Boards work with the standard `backlog`. A [fork](https://github.com/corentin-gautier/Backlog.md) adds a visual doc editor (docs edited where they are shown) and a theme that follows macOS. To build it and make it the `backlog` command (needs [Bun](https://bun.sh) and Homebrew on Apple Silicon):
+Boards work with the standard `backlog`. A [fork](https://github.com/corentin-gautier/Backlog.md) adds a visual doc editor (docs edited where they are shown), the encryption controls on the doc page, and a theme that follows macOS. To build it and make it the `backlog` command (needs [Bun](https://bun.sh) and Homebrew on Apple Silicon):
 
 ```sh
 scripts/backlog-fork.sh            # build and link

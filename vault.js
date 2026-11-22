@@ -25,8 +25,9 @@ function docs(project) {
 	const list = marked();
 	return fs.readdirSync(dir, { recursive: true }).filter((f) => f.endsWith('.md')).sort().map((name) => {
 		const file = path.join(dir, name);
-		const title = (fs.readFileSync(file, 'utf8').match(/^title:\s*["']?(.*?)["']?\s*$/m) || [])[1] || name;
-		return { file, title, marked: list.includes(file), locked: isLocked(file) };
+		const text = fs.readFileSync(file, 'utf8');
+		const field = (key) => (text.match(new RegExp(`^${key}:\\s*["']?(.*?)["']?\\s*$`, 'm')) || [])[1];
+		return { file, id: (field('id') || '').toLowerCase(), title: field('title') || name, marked: list.includes(file), locked: isLocked(file) };
 	});
 }
 
@@ -49,15 +50,18 @@ async function unlock(project, files = ofProject(project).filter(isLocked)) {
 	timers.set(project.dir, { timer, until: Date.now() + RELOCK_MS });
 }
 
-async function act(project, { do: action, file }) {
-	const doc = docs(project).find((d) => d.file === file);
+// A doc is given by its id (the board's doc page) or its file.
+async function act(project, { do: action, id, file }) {
+	const doc = docs(project).find((d) => (id ? d.id === String(id).toLowerCase() : d.file === file));
+	file = doc?.file;
 	if (action === 'lock') await lock(project);
 	else if (action === 'unlock') await unlock(project);
 	else if (action === 'mark' && doc) {
 		saveMarked([...marked(), file]);
-		await run(['lock', file]);
+		// Unlocked project: the doc stays readable and locks with the others; else it locks now.
+		if (!timers.has(project.dir)) await run(['lock', file]);
 	} else if (action === 'unmark' && doc) {
-		if (doc.locked) await run(['unlock', `ne plus chiffrer « ${doc.title} »`, file]);
+		if (doc.locked) await run(['unlock', `stop encrypting “${doc.title}”`, file]);
 		saveMarked(marked().filter((f) => f !== file));
 	}
 	return status(project);
