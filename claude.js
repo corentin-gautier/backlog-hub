@@ -22,7 +22,7 @@ const chats = new Map(); // port -> chat
 
 // ---- SDK messages -> page events ----
 // { type: 'user', text } { type: 'text', text } { type: 'delta', text } { type: 'tool', id, name, input }
-// { type: 'result', id, error, text } { type: 'ask', id, name, input, title } { type: 'answered', id }
+// { type: 'result', id, error, text, images? } { type: 'ask', id, name, input, title } { type: 'answered', id }
 // { type: 'busy', value } { type: 'info', model, mode } { type: 'commands', list } { type: 'error', text } { type: 'reset', events, ...state }
 
 // A slash command as the transcript keeps it: <command-name>/x</command-name><command-args>y</command-args>.
@@ -53,7 +53,8 @@ function convert(message) {
 			return [{ type: 'user', text: content }];
 		}
 		const results = (content || []).filter((b) => b.type === 'tool_result');
-		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000) }));
+		// An image the tool read (Read on a .png…) comes back as an image block: shown in the chat.
+		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000), ...(imagesOf(b.content).length ? { images: imagesOf(b.content) } : {}) }));
 		const text = textOf(content);
 		const images = imagesOf(content);
 		if (message.isSynthetic || text.startsWith('<') || (!text && !images.length)) return [];

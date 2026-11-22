@@ -123,15 +123,28 @@ const Claude = (() => {
 			row.append(summary);
 			if (name === 'Bash' && input.command) row.append(h('pre', 'cmd', `$ ${input.command}`));
 		}
+		if (name === 'Read') row.dataset.path = input.file_path || '';
 		panel.tools[id] = row;
 		append(panel, row);
 	}
 
-	function result(panel, { id, error, text }) {
+	function result(panel, { id, error, text, images }) {
 		const row = panel.tools[id];
 		if (!row) return;
 		row.classList.add(error ? 'failed' : 'ok');
 		if (text && !['Edit', 'Write'].includes(row.querySelector('b').textContent)) row.append(h('pre', 'out', text));
+		// An image Claude read, under its row; a click opens the file.
+		if (images?.length) {
+			const box = h('div', 'md read');
+			for (const src of images) {
+				const img = Object.assign(h('img'), { src, title: row.dataset.path || '' });
+				if (row.dataset.path) img.dataset.path = row.dataset.path;
+				box.append(img);
+			}
+			const stick = nearBottom(panel.log);
+			row.after(box);
+			if (stick) panel.log.scrollTop = panel.log.scrollHeight;
+		}
 	}
 
 	function ask(panel, { id, name, input, title }) {

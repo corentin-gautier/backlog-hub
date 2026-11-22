@@ -143,8 +143,10 @@ body.resizing iframe { pointer-events: none; }
 .claude .tool .n .d { color: oklch(0.637 0.237 25.331); }
 .claude .tool .state { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--dash); border-top-color: var(--accent); animation: spin 1s linear infinite; }
 .claude .tool.ok .state, .claude .tool.failed .state { border: 0; animation: none; display: grid; place-items: center; font-size: 11px; }
-.claude .tool.ok .state::before { content: "✓"; color: var(--done); }
-.claude .tool.failed .state::before { content: "✕"; color: oklch(0.637 0.237 25.331); }
+.claude .tool.ok .state::before, .claude .tool.failed .state::before { content: ""; width: 12px; height: 12px; background: currentColor; mask: var(--glyph) center / contain no-repeat; }
+.claude .tool.ok .state { color: var(--done); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.5-5.2" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'); }
+.claude .tool.failed .state { color: oklch(0.637 0.237 25.331); --glyph: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M3.5 3.5l5 5M8.5 3.5l-5 5" fill="none" stroke="black" stroke-width="1.8" stroke-linecap="round"/></svg>'); }
+.claude .md.read img { margin: -4px 0 0; max-height: 260px; }
 .claude .tool pre.out { max-height: 240px; }
 .claude .todos { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; }
 .claude .todos .completed { text-decoration: line-through; color: var(--faint); }
