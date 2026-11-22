@@ -23,6 +23,7 @@ const VENDOR = {
 	'/vendor/purify.js': 'dompurify/dist/purify.min.js',
 };
 const VSCODE = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+const CHROME = '/Applications/Google Chrome.app';
 const IMAGES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 const TEXT = /\.(md|txt|js|mjs|cjs|ts|tsx|jsx|json|css|scss|html|php|py|rb|sh|zsh|yml|yaml|toml|xml|swift|go|rs|c|h|java|kt|sql)$/i;
 // The home's general chat: a Claude Code conversation outside any project, in the home folder (as `claude` opened in a new Terminal window).
@@ -290,12 +291,14 @@ function localPath(project, ref) {
 	return { file: path.resolve(project.dir, text), line };
 }
 
-// Opens a web link in the default browser, or a file: code at its line in VS Code, anything else in its default app (folders in Finder).
+// Opens a web link in the default browser, or a file: an HTML page in Chrome (Safari without it), code at its line in VS Code,
+// anything else in its default app (folders in Finder).
 function openLocal(project, ref) {
 	if (/^(https?|mailto):/i.test(ref)) return execFile('open', [ref]), true;
 	const { file, line } = localPath(project, ref);
 	if (!fs.existsSync(file)) return false;
-	if (TEXT.test(file) && fs.existsSync(VSCODE)) execFile(VSCODE, ['-g', line ? `${file}:${line}` : file]);
+	if (/\.html?$/i.test(file)) execFile('open', ['-a', fs.existsSync(CHROME) ? CHROME : 'Safari', file]); // a page (a mockup): shown, not edited
+	else if (TEXT.test(file) && fs.existsSync(VSCODE)) execFile(VSCODE, ['-g', line ? `${file}:${line}` : file]);
 	else execFile('open', [file]);
 	return true;
 }
