@@ -1,7 +1,8 @@
 {
 	"name": "backlogs",
 	"private": true,
-	"description": "A home page for every Backlog.md board on this Mac",
+	"description": "A home page for every Backlog.md board on your Mac",
+	"license": "MIT",
 	"scripts": {
 		"start": "node server.js"
 	},
@@ -10,5 +11,8 @@
 		"dompurify": "^3.4.18",
 		"marked": "^18.2.1",
 		"ws": "^8.23.0"
+	},
+	"engines": {
+		"node": ">=20"
 	}
 }
