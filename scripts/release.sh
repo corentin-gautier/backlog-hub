@@ -5,7 +5,9 @@
 #   scripts/release.sh             build everything
 #   scripts/release.sh --mac       only the .dmg files (--win: only the .exe)
 #   scripts/release.sh --dir       a quick unpacked Mac app for this Mac, unsigned (dist/mac-arm64/)
-#   scripts/release.sh --publish   build everything, then a GitHub release v<version> with the files
+#   scripts/release.sh --publish   build everything, push main, then a GitHub release v<version> with the files
+#                                  and this version's CHANGELOG.md section as notes
+#   scripts/release.sh --upload    the same release from the files already in dist/ (no build)
 #
 # Needs: the Xcode Command Line Tools, rsvg-convert (brew install librsvg), the Developer ID certificate in the
 # keychain, and notarization credentials stored once with:
@@ -18,6 +20,8 @@ version=$(node -p "require('./package.json').version")
 backlog_version=$(npm view backlog.md version)
 
 rm -rf build && mkdir -p build/icon.iconset
+
+if [[ $mode != --upload ]]; then
 
 # Icons: .icns for the Mac, a 512 px PNG for Windows (electron-builder makes the .ico).
 for size in 16 32 128 256 512; do
@@ -47,10 +51,14 @@ case $mode in
 	--win) npx electron-builder --win --publish never ;;
 	*) APPLE_KEYCHAIN_PROFILE=backlog-hub npx electron-builder --mac --win --publish never ;;
 esac
+fi
 
-if [[ $mode == --publish ]]; then
+if [[ $mode == (--publish|--upload) ]]; then
+	# Release notes: this version's section of CHANGELOG.md. The release is tagged on main, pushed first.
 	files=(dist/Backlog-Hub-$version-arm64.dmg dist/Backlog-Hub-$version-x64.dmg dist/Backlog-Hub-Setup-$version.exe)
-	gh release create v$version $files --title "Backlog Hub $version" --generate-notes
+	awk -v v="## $version" '$0 ~ "^## " { on = index($0, v) == 1; next } on' CHANGELOG.md > build/notes.md
+	git push origin main
+	gh release create v$version $files --target main --title "Backlog Hub $version" --notes-file build/notes.md
 fi
 rm -rf build
 files=(dist/*.(dmg|exe)(N)); (( $#files )) && ls -lh $files || true
