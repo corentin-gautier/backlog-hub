@@ -9,13 +9,19 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 ## Layout
 
 - Top bar: a Home tab, one tab per open project, and a + button to add a project.
-- Home: today's date (in the browser's language), "My projects", "Coming up" (below), then a section per category with its cards, then "Uncategorized" (projects without one, and the "Add a project" card), then a "+ New category" button.
+- Home: today's date (in the browser's language), "My projects", a row with Coming up, In progress and the general Claude chat (below), then a section per category with its cards, then "Uncategorized" (projects without one, and the "Add a project" card), then a "+ New category" button.
 
 ## Categories and order
 
 - Drag a card to reorder it or move it to another section (its category changes); drag a section's heading to reorder the categories; drag a tab to reorder the tabs.
 - Hovering a heading shows Rename (edit in place, Enter or click away to save, Escape to cancel) and Delete (its projects go to "Uncategorized").
 - Categories and the cards' order are saved in `projects.json` (PUT `/api/layout`), so every browser shows the same; the tabs' order is per browser.
+
+## Top row
+
+- Coming up, In progress and Claude side by side (stacked under 980px wide); a list with no task is hidden.
+- Clicking a heading folds its part down to the heading (a narrow column), and back; folded parts are kept per browser (`folded` in localStorage).
+- The lists stretch to the row's height; the chat fills its box, 300px high at least, 460px when no list is open.
 
 ## Coming up
 
@@ -24,6 +30,11 @@ Plain HTML, CSS and JS in `public/` (`index.html`, `style.css`, `app.js`). Inter
 - Orange at 7 days or less, red once past.
 - The first 5 rows, then "Show N more" / "Show less".
 - Clicking a row opens the project's tab on the task (`/tasks/<id>` in the board).
+
+## In progress
+
+- Every task with the In Progress status, from every project, in the projects' order.
+- A row: title, the project's dot, name and task id; same "Show N more" and click as Coming up.
 
 ## Cards
 

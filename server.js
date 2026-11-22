@@ -100,7 +100,7 @@ function arrange({ categories, order }) {
 
 function state() {
 	const list = load();
-	return { categories: read().categories, projects: describe(list), alerts: alerts(list) };
+	return { categories: read().categories, projects: describe(list), alerts: alerts(list), doing: doing(list) };
 }
 
 function counts(dir) {
@@ -199,6 +199,17 @@ function alerts(list) {
 			.filter((t) => t.status !== 'Done' && /^\d{4}-\d{2}-\d{2}$/.test(t.due))
 			.map((t) => ({ port: p.port, project: config.name, id: t.id, title: t.title, due: t.due, every: every(t) || null }));
 	}).sort((a, b) => a.due.localeCompare(b.due) || a.project.localeCompare(b.project));
+}
+
+// Tasks in progress, every project, in the projects' order.
+function doing(list) {
+	return list.flatMap((p) => {
+		const config = configOf(p.dir);
+		if (!config) return [];
+		return tasksOf(p.dir)
+			.filter((t) => t.status === 'In Progress')
+			.map((t) => ({ port: p.port, project: config.name, id: t.id, title: t.title }));
+	});
 }
 
 function describe(list) {

@@ -200,25 +200,29 @@ body.resizing iframe { pointer-events: none; }
 #today { color: var(--faint); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
 #home h1 { font-size: 24px; font-weight: 700; margin: 4px 0 32px; }
 
-/* Deadlines on the left, the general Claude chat on the right, in the same row: the chat takes the list's height
-   (it fills its box, so its messages never grow the row), 300px at least, 460px with no deadlines; stacked when narrow. */
-#top { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; margin-bottom: 40px; }
-#alerts { display: contents; }
-#alerts h2 { grid-column: 1; grid-row: 1; }
-#alerts .alerts { grid-column: 1; grid-row: 2; margin-bottom: 0; display: flex; flex-direction: column; }
-#alerts .alerts .more { margin-top: auto; } /* a short list: the button stays at the bottom of the frame */
-#general { grid-column: 2; grid-row: 2; position: relative; min-height: 300px; }
-#alerts:empty + #general { min-height: 460px; }
+/* Coming up, In progress and the general Claude chat in one row (columns set by app.js: a folded part keeps only
+   its heading). The lists stretch to the row's height; the chat fills its box, so its messages never grow the row:
+   300px at least, 460px with no list open. Stacked when narrow. */
+#top { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 24px; margin-bottom: 40px; }
+.part { display: flex; flex-direction: column; min-width: 0; }
+.part[hidden] { display: none; }
+.part.folded > :not(h2) { display: none; }
+.part h2 { cursor: pointer; user-select: none; white-space: nowrap; }
+.part h2:hover { color: var(--text); }
+.chevron { width: 6px; height: 6px; margin: 0 2px 0 1px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s; }
+.part.folded .chevron { transform: rotate(-45deg) translate(-1px, -1px); }
+.part .alerts { flex: 1; margin-bottom: 0; display: flex; flex-direction: column; }
+.part .alerts .more { margin-top: auto; } /* a short list: the button stays at the bottom of the frame */
+#general { flex: 1; position: relative; min-height: 300px; }
+#top.solo #general { min-height: 460px; }
 .claude.general { position: absolute; inset: 0; width: auto; max-width: none; border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); overflow: hidden; }
 @media (max-width: 980px) {
-	#top { grid-template-columns: 1fr; row-gap: 24px; }
-	#alerts h2 { margin-bottom: -10px; }
-	#general { grid-column: 1; grid-row: 3; }
+	#top { grid-template-columns: minmax(0, 1fr) !important; row-gap: 24px; }
 }
 
 /* "Coming up": open tasks with a due date, soonest first. */
-#alerts h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-#alerts .count { font-size: 12px; background: var(--pill); color: var(--pill-text); border-radius: 99px; padding: 1px 8px; letter-spacing: 0; }
+.part h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.part .count { font-size: 12px; background: var(--pill); color: var(--pill-text); border-radius: 99px; padding: 1px 8px; letter-spacing: 0; }
 .alerts { background: var(--card); border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); margin-bottom: 40px; overflow: hidden; }
 .alert { display: flex; align-items: center; gap: 14px; padding: 11px 16px; border-top: 1px solid var(--line); cursor: pointer; }
 .alert:first-child { border-top: 0; }

@@ -3,6 +3,7 @@
 const frames = {};
 let projects = [];
 let alerts = [];
+let doing = [];
 let categories = [];
 let current = '';
 
@@ -14,6 +15,7 @@ function take(state) {
 	categories = state.categories;
 	projects = state.projects;
 	alerts = state.alerts || [];
+	doing = state.doing || [];
 }
 
 // Stored per browser: the open tabs and the one shown.
@@ -36,7 +38,7 @@ function render() {
 		...categories.map((name) => group(name, projects.filter((p) => p.category === name))),
 		group('', projects.filter((p) => !known(p)))
 	);
-	renderAlerts();
+	renderTop();
 	highlight();
 }
 
@@ -205,10 +207,67 @@ function tab(p) {
 	return el;
 }
 
-// ---- "Coming up": open tasks with a due date, every project ----
+// ---- the row above the projects: Coming up, In progress, the general chat ----
+// A click on a heading folds its part down to the heading (remembered per browser).
 
 const SHOWN = 5;
-let allAlerts = false;
+const showAll = new Set(); // lists showing every row
+const folded = new Set(stored('folded', []));
+
+function renderTop() {
+	list('alerts', alerts, alertRow);
+	list('doing', doing, doingRow);
+	const parts = [...document.querySelectorAll('#top .part')];
+	for (const el of parts) el.classList.toggle('folded', folded.has(el.dataset.part));
+	const shown = parts.filter((el) => !el.hidden);
+	$('#top').style.gridTemplateColumns = shown.map((el) => (folded.has(el.dataset.part) ? 'max-content' : 'minmax(0, 1fr)')).join(' ');
+	$('#top').classList.toggle('solo', !shown.some((el) => el.dataset.part !== 'claude' && !folded.has(el.dataset.part)));
+}
+
+document.querySelectorAll('#top .part h2').forEach((head) => (head.onclick = () => {
+	const name = head.parentElement.dataset.part;
+	folded.has(name) ? folded.delete(name) : folded.add(name);
+	store('folded', [...folded]);
+	renderTop();
+}));
+
+// A list of tasks (hidden when empty): the first rows, then a button for the rest.
+function list(name, items, row) {
+	const el = $(`.part[data-part="${name}"]`);
+	el.hidden = !items.length;
+	el.querySelector('.count').textContent = items.length;
+	const box = el.querySelector('.alerts');
+	box.replaceChildren(...(showAll.has(name) ? items : items.slice(0, SHOWN)).map(row));
+	if (items.length <= SHOWN) return;
+	const more = document.createElement('button');
+	more.className = 'more';
+	more.textContent = showAll.has(name) ? 'Show less' : `Show ${items.length - SHOWN} more`;
+	more.onclick = () => {
+		showAll.has(name) ? showAll.delete(name) : showAll.add(name);
+		renderTop();
+	};
+	box.append(more);
+}
+
+// The project's dot, its name and the task id, under a title.
+function taskLine(el, t) {
+	el.querySelector('.title').textContent = t.title;
+	const dot = el.querySelector('.dot');
+	dot.textContent = t.project[0].toUpperCase();
+	dot.style.background = colour(t.project);
+	dot.after(`${t.project} · ${t.id}`);
+	el.onclick = () => show(String(t.port), `tasks/${t.id}`);
+}
+
+function doingRow(t) {
+	const el = document.createElement('div');
+	el.className = 'alert';
+	el.innerHTML = '<div class="what"><div class="title"></div><div class="sub"><i class="dot"></i></div></div>';
+	taskLine(el, t);
+	return el;
+}
+
+// Coming up: open tasks with a due date, soonest first.
 // Recurrence labels (the French ones still work).
 const EVERY = { monthly: 'monthly', quarterly: 'quarterly', yearly: 'yearly', mensuel: 'monthly', trimestriel: 'quarterly', annuel: 'yearly' };
 
@@ -227,30 +286,6 @@ function when(days) {
 	return `in ${Math.round(days / 30.4)} months`;
 }
 
-function renderAlerts() {
-	const box = $('#alerts');
-	box.replaceChildren();
-	if (!alerts.length) return;
-	const head = document.createElement('h2');
-	head.innerHTML = 'Coming up <span class="count"></span>';
-	head.querySelector('.count').textContent = alerts.length;
-	const list = document.createElement('div');
-	list.className = 'alerts';
-	list.append(...(allAlerts ? alerts : alerts.slice(0, SHOWN)).map(alertRow));
-	if (alerts.length > SHOWN) {
-		const more = document.createElement('button');
-		more.className = 'more';
-		const rest = alerts.length - SHOWN;
-		more.textContent = allAlerts ? 'Show less' : `Show ${rest} more`;
-		more.onclick = () => {
-			allAlerts = !allAlerts;
-			renderAlerts();
-		};
-		list.append(more);
-	}
-	box.append(head, list);
-}
-
 function alertRow(a) {
 	const days = daysUntil(a.due);
 	const date = new Date(`${a.due}T12:00`);
@@ -260,19 +295,14 @@ function alertRow(a) {
 	el.querySelector('.date b').textContent = date.getDate();
 	el.querySelector('.date span').textContent = date.toLocaleDateString(undefined, { month: 'short' });
 	el.querySelector('.date').title = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-	el.querySelector('.title').textContent = a.title;
+	taskLine(el, a);
 	if (a.every) {
 		const tag = document.createElement('span');
 		tag.className = 'every';
 		tag.textContent = EVERY[a.every.toLowerCase()];
 		el.querySelector('.title').append(tag);
 	}
-	const dot = el.querySelector('.dot');
-	dot.textContent = a.project[0].toUpperCase();
-	dot.style.background = colour(a.project);
-	dot.after(`${a.project} · ${a.id}`);
 	el.querySelector('.when').textContent = when(days);
-	el.onclick = () => show(String(a.port), `tasks/${a.id}`);
 	return el;
 }
 
