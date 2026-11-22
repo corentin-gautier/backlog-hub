@@ -1,10 +1,10 @@
 ---
 id: TASK-3
 title: Encryption controls in the doc's header
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-22T10:24:35Z'
-updated_date: '2026-11-22T10:25:16Z'
+updated_date: '2026-11-22T10:28:15Z'
 labels: []
 dependencies: []
 ordinal: 3000
