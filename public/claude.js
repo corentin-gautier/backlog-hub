@@ -282,49 +282,76 @@ const Claude = (() => {
 		if (name === 'AskUserQuestion') {
 			const answers = {};
 			const questions = input.questions || [];
-			const submit = h('button', 'btn primary', 'Answer');
-			const ready = () => (submit.disabled = questions.some((q) => !answers[q.question]));
 			// One click answers a lone single-choice question; otherwise (or with Other) the Answer button sends.
 			const quick = questions.length === 1 && !questions[0].multiSelect;
-			const row = h('div', 'row');
+			const submit = h('button', 'btn primary', 'Answer');
+			const ready = () => (submit.disabled = questions.some((q) => !answers[q.question]));
+			const lists = [];
 			for (const q of questions) {
+				if (q.header) card.append(h('div', 'head', q.header));
 				card.append(h('div', 'q', q.question));
-				const options = h('div', 'options');
-				const other = h('button', 'btn option', 'Other');
-				const text = Object.assign(h('input', 'other'), { placeholder: 'Your answer', hidden: true });
+				const list = h('div', 'choices');
+				const row = (n, body) => {
+					const el = h('div', 'choice');
+					el.append(h('span', 'key', String(n)), body);
+					list.append(el);
+					return el;
+				};
+				const text = Object.assign(h('input'), { placeholder: 'Other: type your answer' });
 				const update = () => {
-					const picked = [...options.querySelectorAll('.btn.on')].filter((b) => b !== other).map((b) => b.textContent);
-					if (other.classList.contains('on') && text.value.trim()) picked.push(text.value.trim());
+					const picked = [...list.querySelectorAll('.choice.on')].map((el) => (el.contains(text) ? text.value.trim() : el.dataset.label)).filter(Boolean);
 					answers[q.question] = picked.join(', ');
+					if (quick) submit.hidden = !other.classList.contains('on');
 					ready();
 				};
-				const pick = (button) => {
-					if (q.multiSelect) button.classList.toggle('on');
-					else options.querySelectorAll('.btn').forEach((b) => b.classList.toggle('on', b === button));
-					text.hidden = !other.classList.contains('on');
-					if (!text.hidden) text.focus();
-					if (quick) submit.hidden = text.hidden;
+				const pick = (el, on = q.multiSelect ? !el.classList.contains('on') : true) => {
+					if (!q.multiSelect) list.querySelectorAll('.choice').forEach((c) => c.classList.remove('on'));
+					el.classList.toggle('on', on);
 					update();
 				};
-				for (const option of q.options) {
-					const button = h('button', 'btn option', option.label);
-					button.title = option.description || '';
-					button.onclick = () => (pick(button), quick && answer('allow', answers));
-					options.append(button);
-				}
-				other.onclick = () => pick(other);
-				text.oninput = update;
-				text.onkeydown = (e) => e.key === 'Enter' && !submit.disabled && (e.preventDefault(), submit.click());
-				options.append(other);
-				card.append(options, text);
+				q.options.forEach((option, i) => {
+					const body = h('span', 'body');
+					const label = option.label.replace(/\s*\(Recommended\)$/i, '');
+					body.append(h('b', '', label));
+					if (label !== option.label) body.append(h('span', 'badge', 'Recommended'));
+					if (option.description) body.append(h('small', '', option.description));
+					const el = row(i + 1, body);
+					el.dataset.label = option.label;
+					el.onclick = () => (pick(el), quick && answer('allow', answers));
+				});
+				const other = row(q.options.length + 1, text);
+				other.classList.add('other');
+				other.onclick = (e) => (pick(other, e.target === text || undefined), other.classList.contains('on') && text.focus());
+				text.oninput = () => (other.classList.contains('on') ? update() : pick(other, true));
+				text.onkeydown = (e) => {
+					if (e.key !== 'Enter') return;
+					e.preventDefault();
+					e.stopPropagation();
+					if (!submit.disabled) submit.click();
+				};
+				card.append(list);
+				lists.push({ q, list });
 			}
-			submit.hidden = quick;
-			const skip = h('button', 'btn', 'Skip');
+			// Keys: 1–n pick in the question being answered (the focused one, else the first unanswered); Enter sends.
+			card.tabIndex = -1;
+			card.onkeydown = (e) => {
+				if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+				if (e.key === 'Enter' && !submit.disabled) return e.preventDefault(), submit.click();
+				const current = lists.find(({ list }) => list.contains(document.activeElement)) || lists.find(({ q }) => !answers[q.question]) || lists[0];
+				const choice = current?.list.querySelectorAll('.choice')[Number(e.key) - 1];
+				if (choice) e.preventDefault(), choice.click();
+			};
+			const n = Math.max(...questions.map((q) => q.options.length + 1));
+			const row = h('div', 'foot');
+			const skip = h('button', 'link', 'Skip');
 			skip.onclick = () => answer('deny');
-			row.append(submit, skip);
+			row.append(h('span', 'hint', quick ? `1–${n} to pick` : `1–${n} to pick · Enter to send`), skip, submit);
 			card.append(row);
+			submit.hidden = quick;
 			ready();
 			submit.onclick = () => answer('allow', answers);
+			append(panel, card);
+			return card.focus({ preventScroll: true });
 		} else {
 			card.append(h('div', 'q', title || `Claude wants to use ${name}`));
 			const detail = input.command || input.file_path || input.url;
