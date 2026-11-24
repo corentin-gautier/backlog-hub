@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-11-24
+
+### Features
+
+- **chat:** question choices as a list with descriptions and number keys ([7482157](https://github.com/corentin-gautier/backlog-hub/commit/7482157))
+- **chat:** Other option and answers recap for Claude's questions ([8d510ed](https://github.com/corentin-gautier/backlog-hub/commit/8d510ed))
+
 ## 0.2.1 — 2026-11-22
 
 ### Fixes
