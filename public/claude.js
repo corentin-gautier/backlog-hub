@@ -195,7 +195,14 @@ const Claude = (() => {
 	}
 
 	function tool(panel, { id, name, input, parent }) {
-		if (name === 'AskUserQuestion') return; // shown as its own card
+		// Asked in its own card; once answered, a recap of the questions and answers takes this place.
+		if (name === 'AskUserQuestion') {
+			if (parent) return;
+			const recap = h('div', 'recap');
+			recap.hidden = true;
+			recap.questions = (input?.questions || []).map((q) => q.question);
+			return append(panel, (panel.tools[id] = recap));
+		}
 		// A subagent's tool goes in its block (never in the conversation), folded with the others.
 		const block = parent && panel.tools[parent];
 		if (parent && !block?.steps) return;
@@ -233,6 +240,7 @@ const Claude = (() => {
 		const row = panel.tools[id];
 		if (!row) return;
 		if (row.classList.contains('agent')) return agentResult(panel, row, event);
+		if (row.classList.contains('recap')) return recap(row, event);
 		row.classList.add(error ? 'failed' : 'ok');
 		if (text && !['Edit', 'Write'].includes(row.querySelector('b').textContent)) row.append(h('pre', 'out', text));
 		// An image Claude read, under its row; a click opens the file.
@@ -249,6 +257,24 @@ const Claude = (() => {
 		}
 	}
 
+	// The answers given, from the result (live) or read back from its text (a transcript): "Q"="A", "Q2"="A2".
+	function recap(box, { error, text = '', answers }) {
+		if (!answers && !error) {
+			answers = {};
+			const starts = box.questions.map((q) => text.indexOf(`"${q}"="`));
+			box.questions.forEach((q, i) => {
+				if (starts[i] < 0) return;
+				const from = starts[i] + q.length + 4;
+				const next = starts.slice(i + 1).find((n) => n > from);
+				const to = next != null ? text.lastIndexOf('"', next - 3) : text.lastIndexOf('"');
+				if (to >= from) answers[q] = text.slice(from, to);
+			});
+		}
+		for (const q of box.questions) box.append(h('div', 'q', q), h('div', 'a', error ? 'Skipped' : answers[q] || '—'));
+		box.classList.toggle('skipped', Boolean(error));
+		box.hidden = false;
+	}
+
 	function ask(panel, { id, name, input, title }) {
 		const card = h('div', 'ask');
 		card.dataset.ask = id;
@@ -258,28 +284,44 @@ const Claude = (() => {
 			const questions = input.questions || [];
 			const submit = h('button', 'btn primary', 'Answer');
 			const ready = () => (submit.disabled = questions.some((q) => !answers[q.question]));
+			// One click answers a lone single-choice question; otherwise (or with Other) the Answer button sends.
+			const quick = questions.length === 1 && !questions[0].multiSelect;
+			const row = h('div', 'row');
 			for (const q of questions) {
 				card.append(h('div', 'q', q.question));
-				const row = h('div', 'options');
+				const options = h('div', 'options');
+				const other = h('button', 'btn option', 'Other');
+				const text = Object.assign(h('input', 'other'), { placeholder: 'Your answer', hidden: true });
+				const update = () => {
+					const picked = [...options.querySelectorAll('.btn.on')].filter((b) => b !== other).map((b) => b.textContent);
+					if (other.classList.contains('on') && text.value.trim()) picked.push(text.value.trim());
+					answers[q.question] = picked.join(', ');
+					ready();
+				};
+				const pick = (button) => {
+					if (q.multiSelect) button.classList.toggle('on');
+					else options.querySelectorAll('.btn').forEach((b) => b.classList.toggle('on', b === button));
+					text.hidden = !other.classList.contains('on');
+					if (!text.hidden) text.focus();
+					if (quick) submit.hidden = text.hidden;
+					update();
+				};
 				for (const option of q.options) {
 					const button = h('button', 'btn option', option.label);
 					button.title = option.description || '';
-					button.onclick = () => {
-						if (q.multiSelect) button.classList.toggle('on');
-						else row.querySelectorAll('.btn').forEach((b) => b.classList.toggle('on', b === button));
-						answers[q.question] = [...row.querySelectorAll('.btn.on')].map((b) => b.textContent).join(', ');
-						if (questions.length === 1 && !q.multiSelect) return answer('allow', answers);
-						ready();
-					};
-					row.append(button);
+					button.onclick = () => (pick(button), quick && answer('allow', answers));
+					options.append(button);
 				}
-				card.append(row);
+				other.onclick = () => pick(other);
+				text.oninput = update;
+				text.onkeydown = (e) => e.key === 'Enter' && !submit.disabled && (e.preventDefault(), submit.click());
+				options.append(other);
+				card.append(options, text);
 			}
-			const row = h('div', 'row');
-			if (questions.length > 1 || questions.some((q) => q.multiSelect)) row.append(submit);
-			const other = h('button', 'btn', 'Skip');
-			other.onclick = () => answer('deny');
-			row.append(other);
+			submit.hidden = quick;
+			const skip = h('button', 'btn', 'Skip');
+			skip.onclick = () => answer('deny');
+			row.append(submit, skip);
 			card.append(row);
 			ready();
 			submit.onclick = () => answer('allow', answers);

@@ -82,7 +82,9 @@ function convert(message) {
 		}
 		const results = (content || []).filter((b) => b.type === 'tool_result');
 		// An image the tool read (Read on a .png…) comes back as an image block: shown in the chat.
-		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000), ...(imagesOf(b.content).length ? { images: imagesOf(b.content) } : {}) }));
+		// AskUserQuestion's answers, when the SDK gives them (live, not in a transcript read back).
+		const answers = message.tool_use_result?.answers;
+		if (results.length) return results.map((b) => ({ type: 'result', id: b.tool_use_id, error: Boolean(b.is_error), text: textOf(b.content).slice(0, 4000), ...(imagesOf(b.content).length ? { images: imagesOf(b.content) } : {}), ...(answers && results.length === 1 ? { answers } : {}) }));
 		const text = textOf(content);
 		const images = imagesOf(content);
 		if (message.isSynthetic || text.startsWith('<') || (!text && !images.length)) return [];

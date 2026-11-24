@@ -177,6 +177,13 @@ body.resizing iframe { pointer-events: none; }
 .claude .ask .q { font-weight: 500; margin-bottom: 6px; }
 .claude .ask pre { max-height: 200px; }
 .claude .ask .row, .claude .ask .options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.claude .ask input.other { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; font: inherit; font-size: 13px; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+.claude .ask input.other[hidden] { display: none; }
+.claude .recap { border-left: 2px solid var(--doing); padding-left: 10px; font-size: 13px; }
+.claude .recap .q { color: var(--muted); }
+.claude .recap .a { font-weight: 500; margin-bottom: 4px; }
+.claude .recap .a:last-child { margin-bottom: 0; }
+.claude .recap.skipped .a { color: var(--faint); font-weight: 400; }
 .claude .btn { font: inherit; font-size: 12.5px; font-weight: 500; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
 .claude .btn:hover { border-color: var(--dash); }
 .claude .btn.primary, .claude .btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
